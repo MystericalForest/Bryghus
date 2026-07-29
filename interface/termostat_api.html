@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Termostat API Dokumentation</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f6f9; color: #2c3e50; }
+
+    header {
+      background: linear-gradient(135deg, #1a2a4a, #2e75b6);
+      color: white;
+      padding: 40px 48px 32px;
+    }
+    header h1 { font-size: 28px; font-weight: 700; margin-bottom: 6px; }
+    header p { font-size: 14px; opacity: 0.8; }
+
+    .meta-bar {
+      background: #1e3a5f;
+      color: #a8c8e8;
+      padding: 10px 48px;
+      font-size: 12px;
+      display: flex; gap: 32px;
+    }
+    .meta-bar span b { color: #fff; }
+
+    main { max-width: 960px; margin: 36px auto; padding: 0 24px 60px; }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #2e75b6;
+      margin: 40px 0 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #d0e4f5;
+    }
+
+    /* General info box */
+    .info-box {
+      background: #fff;
+      border-left: 4px solid #2e75b6;
+      border-radius: 6px;
+      padding: 20px 24px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .info-box code { background: #eef4fb; padding: 2px 6px; border-radius: 3px; font-size: 13px; color: #1a5a9a; }
+
+    /* Command card */
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 24px;
+      background: #f0f6fd;
+      border-bottom: 1px solid #dde8f5;
+    }
+    .cmd-badge {
+      background: #2e75b6;
+      color: white;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-family: monospace;
+      letter-spacing: 0.5px;
+    }
+    .card-header h3 { font-size: 15px; color: #1a2a4a; font-weight: 600; }
+    .card-body { padding: 20px 24px; }
+    .card-body p { font-size: 14px; color: #4a5568; margin-bottom: 14px; line-height: 1.6; }
+
+    /* Parameters table */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 16px; }
+    thead tr { background: #1a2a4a; color: white; }
+    thead th { padding: 9px 14px; text-align: left; font-weight: 600; }
+    tbody tr { border-bottom: 1px solid #e8eef5; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #f7fafd; }
+    tbody td { padding: 9px 14px; vertical-align: top; }
+    .param-name { font-family: monospace; color: #1a5a9a; font-weight: 600; }
+    .type-badge { background: #eef4fb; color: #2e75b6; padding: 2px 7px; border-radius: 3px; font-size: 11px; font-family: monospace; white-space: nowrap; }
+    .required { color: #c0392b; font-size: 11px; font-weight: 700; }
+    .optional { color: #7f8c8d; font-size: 11px; }
+
+    /* Code blocks */
+    .code-block {
+      background: #1e2d3d;
+      color: #a8d8f0;
+      border-radius: 6px;
+      padding: 16px 20px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 12.5px;
+      line-height: 1.6;
+      overflow-x: auto;
+      margin-top: 4px;
+    }
+    .code-block .key { color: #79b8e8; }
+    .code-block .str { color: #98e09a; }
+    .code-block .num { color: #f9c86a; }
+    .code-block .bool { color: #f0a07a; }
+    .code-block .comment { color: #6a8a9a; font-style: italic; }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .col-label { font-size: 11px; font-weight: 700; color: #7f8c8d; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+
+    /* Response */
+    .response-note {
+      background: #f0faf2;
+      border-left: 3px solid #27ae60;
+      border-radius: 4px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #2c6e3f;
+      margin-top: 12px;
+    }
+    .error-note {
+      background: #fdf3f3;
+      border-left: 3px solid #e74c3c;
+      border-radius: 4px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #922b21;
+      margin-top: 8px;
+    }
+
+    /* States table */
+    .state-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .s-opvarmning { background: #d6eaf8; color: #1a5276; }
+    .s-run        { background: #d5f5e3; color: #1e6b40; }
+    .s-advarsel   { background: #fef9e7; color: #7d6608; border: 1px solid #f9e79f; }
+    .s-alarm      { background: #fdedec; color: #922b21; }
+    .s-hwalarm    { background: #f5eef8; color: #6c3483; }
+
+    footer {
+      text-align: center;
+      font-size: 12px;
+      color: #999;
+      padding: 24px;
+      border-top: 1px solid #e0e8f0;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Termostat Controller — API Dokumentation</h1>
+  <p>Serial JSON API til styring af relæer, PID-termostater og temperaturfølere</p>
+</header>
+
+<div class="meta-bar">
+  <span><b>Protokol:</b> Serial UART</span>
+  <span><b>Baud rate:</b> 115200</span>
+  <span><b>Format:</b> JSON, newline-termineret (\n)</span>
+  <span><b>Relæer:</b> 4 &nbsp;|&nbsp; <b>Termostater:</b> 3 &nbsp;|&nbsp; <b>Sensorer:</b> 4</span>
+</div>
+
+<main>
+
+  <!-- GENERELT -->
+  <div class="section-title">Generelt</div>
+  <div class="info-box">
+    Alle kommandoer sendes som JSON-objekter termineret med <code>\n</code>. Hvert svar indeholder feltet <code>"success": true/false</code>. Ved fejl returneres desuden <code>"error": "..."</code> med en beskrivelse. Ved succes returneres altid den fulde status (samme som <code>status</code>-kommandoen).<br><br>
+    <b>Indeksering:</b> Relæer, termostater og sensorer er <b>1-indekserede</b> i API'et (1–4 for relæer/sensorer, 1–3 for termostater).
+  </div>
+
+  <!-- STATUS -->
+  <div class="section-title">Kommandoer</div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="cmd-badge">status</span>
+      <h3>Hent nuværende status</h3>
+    </div>
+    <div class="card-body">
+      <p>Returnerer den fulde systemstatus uden at ændre noget.</p>
+      <div class="two-col">
+        <div>
+          <div class="col-label">Forespørgsel</div>
+          <div class="code-block">{ <span class="key">"command"</span>: <span class="str">"status"</span> }</div>
+        </div>
+        <div>
+          <div class="col-label">Svar</div>
+          <div class="code-block">{
+  <span class="key">"success"</span>: <span class="bool">true</span>,
+  <span class="key">"status"</span>: {
+    <span class="key">"uptime"</span>: <span class="num">120079</span>,
+    <span class="key">"selectedSensor"</span>: <span class="num">2</span>
+  },
+  <span class="key">"relays"</span>: [<span class="bool">true</span>, <span class="bool">false</span>, <span class="bool">false</span>, <span class="bool">false</span>],
+  <span class="key">"thermostat1"</span>: {
+    <span class="key">"temperature"</span>: <span class="num">31.8</span>,
+    <span class="key">"setpoint"</span>: <span class="num">30.0</span>,
+    <span class="key">"heater"</span>: <span class="bool">false</span>,
+    <span class="key">"state"</span>: <span class="str">"Run"</span>,
+    <span class="key">"fault"</span>: <span class="bool">false</span>,
+    <span class="key">"faultCode"</span>: <span class="num">0</span>,
+    <span class="key">"kp"</span>: <span class="num">2.0</span>,
+    <span class="key">"ki"</span>: <span class="num">5.0</span>,
+    <span class="key">"kd"</span>: <span class="num">1.0</span>,
+    <span class="key">"alarmLimit"</span>: <span class="num">5.0</span>,
+    <span class="key">"warningLimit"</span>: <span class="num">2.0</span>,
+    <span class="key">"windowSize"</span>: <span class="num">5000</span>,
+    <span class="key">"manualMode"</span>: <span class="str">"pid"</span>,
+    <span class="key">"manualPercent"</span>: <span class="num">0.0</span>,
+    <span class="key">"heatPercent"</span>: <span class="num">42.3</span>
+  },
+  <span class="key">"thermostat2"</span>: { <span class="comment">/* samme struktur */</span> },
+  <span class="key">"thermostat3"</span>: { <span class="comment">/* samme struktur */</span> },
+  <span class="key">"sensor4"</span>: {
+    <span class="key">"temperature"</span>: <span class="num">22.1</span>,
+    <span class="key">"fault"</span>: <span class="bool">false</span>,
+    <span class="key">"faultCode"</span>: <span class="num">0</span>
+  },
+  <span class="key">"override"</span>: <span class="bool">false</span>
+}</div>
+        </div>
+      </div>
+      <div class="response-note">Alle kommandoer der ændrer tilstand returnerer samme svarformat som <b>status</b>.</div>
+
+      <p style="margin-top:18px"><b>Felter pr. termostat:</b></p>
+      <table>
+        <thead><tr><th>Felt</th><th>Type</th><th>Beskrivelse</th></tr></thead>
+        <tbody>
+          <tr><td class="param-name">temperature</td><td><span class="type-badge">float|null</span></td><td>Aktuel temperatur i °C (1 decimal). <code>null</code> ved sensorfejl.</td></tr>
+          <tr><td class="param-name">setpoint</td><td><span class="type-badge">float</span></td><td>Aktivt setpunkt i °C.</td></tr>
+          <tr><td class="param-name">heater</td><td><span class="type-badge">bool</span></td><td>Om varmerelæet er aktivt i øjeblikket.</td></tr>
+          <tr><td class="param-name">state</td><td><span class="type-badge">string</span></td><td>Termostatens tilstand (se tilstandstabel under setState).</td></tr>
+          <tr><td class="param-name">fault</td><td><span class="type-badge">bool</span></td><td>Om sensoren er i fejltilstand.</td></tr>
+          <tr><td class="param-name">faultCode</td><td><span class="type-badge">int</span></td><td>MAX31865 fejlkode. <code>0</code> = ingen fejl, <code>255</code> = temperatur uden for gyldigt interval (−30 – 150 °C).</td></tr>
+          <tr><td class="param-name">kp / ki / kd</td><td><span class="type-badge">float</span></td><td>Aktive PID-koefficienter.</td></tr>
+          <tr><td class="param-name">alarmLimit</td><td><span class="type-badge">float</span></td><td>°C over setpunkt der udløser Alarm.</td></tr>
+          <tr><td class="param-name">warningLimit</td><td><span class="type-badge">float</span></td><td>°C afvigelse der udløser Advarsel.</td></tr>
+          <tr><td class="param-name">windowSize</td><td><span class="type-badge">ulong</span></td><td>PWM-vinduestørrelse i ms.</td></tr>
+          <tr><td class="param-name">manualMode</td><td><span class="type-badge">string</span></td><td>Aktiv tilstand: <code>pid</code>, <code>off</code>, <code>on</code> eller <code>percent</code>.</td></tr>
+          <tr><td class="param-name">manualPercent</td><td><span class="type-badge">float</span></td><td>Konfigureret procent ved <code>manualMode: "percent"</code>.</td></tr>
+          <tr><td class="param-name">heatPercent</td><td><span class="type-badge">float</span></td><td>Aktuel varmeeffekt i % (0–100). PID-output ved <code>pid</code>-tilstand, ellers afledt af manuel tilstand.</td></tr>
+        </tbody>
+      </table>
+
+      <p style="margin-top:18px"><b>Felt på øverste niveau:</b></p>
+      <table>
+        <thead><tr><th>Felt</th><th>Type</th><th>Beskrivelse</th></tr></thead>
+        <tbody>
+          <tr><td class="param-name">override</td><td><span class="type-badge">bool</span></td><td>Om manuel fuld-varme-overstyring er aktiv (se <code>setOverride</code>).</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- setRelay -->
+  <div class="card">
+    <div class="card-header">
+      <span class="cmd-badge">setRelay</span>
+      <h3>Sæt relætilstand</h3>
+    </div>
+    <div class="card-body">
+      <p>Tænder eller slukker et bestemt relæ. Relænummeret er 1-indekseret.</p>
+      <table>
+        <thead><tr><th>Parameter</th><th>Type</th><th>Krav</th><th>Beskrivelse</th></tr></thead>
+        <tbody>
+          <tr><td class="param-name">relay</td><td><span class="type-badge">int</span></td><td class="required">Påkrævet</td><td>Relænummer (1–4)</td></tr>
+          <tr><td class="param-name">state</td><td><span class="type-badge">bool</span></td><td class="required">Påkrævet</td><td><code>true</code> = tænd, <code>false</code> = sluk</td></tr>
+        </tbody>
+      </table>
+      <div class="two-col">
+        <div>
+          <div class="col-label">Eksempel — tænd relæ 2</div>
+          <div class="code-block">{
+  <span class="key">"command"</span>: <span class="str">"setRelay"</span>,
+  <span class="key">"relay"</span>: <span class="num">2</span>,
+  <span class="key">"state"</span>: <span class="bool">true</span>
+}</div>
+        </div>
+        <div>
+          <div class="col-label">Eksempel — sluk relæ 2</div>
+          <div class="code-block">{
+  <span class="key">"command"</span>: <span class="str">"setRelay"</span>,
+  <span class="key">"relay"</span>: <span class="num">2</span>,
+  <span class="key">"state"</span>: <span class="bool">false</span>
+}</div>
+        </div>
+      </div>
+      <div class="error-note">Fejl hvis <code>relay</code> ikke er i intervallet 1–4, eller hvis <code>relay</code>/<code>state</code> mangler.</div>
+    </div>
+  </div>
+
+  <!-- selectSensor -->
+  <div class="card">
+    <div class="card-header">
+      <span class="cmd-badge">selectSensor</span>
+      <h3>Vælg sensor til display</h3>
+    </div>
+    <div class="card-body">
+      <p>Skifter hvilken temperatursensor der vises på TM1637-displayet. Opdaterer også sensor-LED'erne.</p>
+      <table>
+        <thead><tr><th>Parameter</th><th>Type</th><th>Krav</th><th>Beskrivelse</th></tr></thead>
+        <tbody>
+          <tr><td class="param-name">sensor</td><td><span class="type-badge">int</span></td><td class="required">Påkrævet</td><td>Sensornummer (1–4)</td></tr>
+        </tbody>
+      </table>
+      <div class="col-label">Eksempel</div>
+      <div class="code-block">{
+  <span class="key">"command"</span>: <span class="str">"selectSensor"</span>,
+  <span class="key">"sensor"</span>: <span class="num">3</span>
+}</div>
+      <div class="error-note">Fejl hvis <code>sensor</code> ikke er i intervallet 1–4.</div>
+    </div>
+  </div>
+
+  <!-- setPID -->
+  <div class="card">
+    <div class="card-header">
+      <span class="cmd-badge">setPID</span>
+      <h3>Konfigurer PID-termostat</h3>
+    </div>
+    <div class="card-body">
+      <p>Sætter setpunkt og PID-parametre for en termostat. Kun <code>thermostat</code> og <code>setpoint</code> er påkrævet — øvrige parametre opdateres kun hvis de er med.</p>
+      <table>
+        <thead><tr><th>Parameter</th><th>Type</th><th>Krav</th><th>Beskrivelse</th></tr></thead>
+        <tbody>
+          <tr><td class="param-name">thermostat</td><td><span class="type-badge">int</span></td><td class="required">Påkrævet</td><td>Termostatnummer (1–3)</td></tr>
+          <tr><td class="param-name">setpoint</td><td><span class="type-badge">float</span></td><td class="required">Påkrævet</td><td>Ønsket temperatur i °C</td></tr>
+          <tr><td class="param-name">kp</td><td><span class="type-badge">float</span></td><td class="optional">Valgfri</td><td>Proportional-koefficient (standard: 2.0)</td></tr>
+          <tr><td class="param-name">ki</td><td><span class="type-badge">float</span></td><td class="optional">Valgfri</td><td>Integral-koefficient (standard: 5.0)</td></tr>
+          <tr><td class="param-name">kd</td><td><span class="type-badge">float</span></td><td class="optional">Valgfri</td><td>Differentiations-koefficient (standard: 1.0)</td></tr>
+          <tr><td class="param-name">windowSize</td><td><span class="type-badge">ulong</span></td><td class="optional">Valgfri</td><td>PWM-vinduet i ms (standard: 5000)</td></tr>
+        </tbody>
+      </table>
+      <div class="col-label">Eksempel — sæt setpunkt og PID-parametre</div>
+      <div class="code-block">{
+  <span class="key">"command"</span>: <span class="str">"setPID"</span>,
+  <span class="key">"thermostat"</span>: <span class="num">1</span>,
+  <span class="key">"setpoint"</span>: <span class="num">60.0</span>,
+  <span class="key">"kp"</span>: <span class="num">3.0</span>,
+  <span class="key">"ki"</span>: <span class="num">4.0</span>,
+  <span class="key">"kd"</span>: <span class="num">1.5</span>,
+  <span class="key">"windowSize"</span>: <span class="num">10000</span>
+}</div>
+      <div class="error-note">Fejl hvis <code>thermostat</code> ikke er i intervallet 1–3, eller hvis <code>thermostat</code>/<code>setpoint</code> mangler.</div>
+    </div>
+  </div>
+
+  <!-- setLimits -->
+  <div class="card">
+    <div class="card-header">
+      <span class="cmd-badge">setLimits</span>
+      <h3>Sæt alarm- og advarselsgrænser</h3>
+    </div>
+    <div class="card-body">
+      <p>Definerer hvor mange grader over setpunktet der udløser henholdsvis advarsel og alarm. Grænser er delta-værdier (ikke absolutte temperaturer).</p>
+      <table>
+        <thead><tr><th>Parameter</th><th>Type</th><th>Krav</th><th>Beskrivelse</th></tr></thead>
+        <tbody>
+          <tr><td class="param-name">thermostat</td><td><span class="type-badge">int</span></td><td class="required">Påkrævet</td><td>Termostatnummer (1–3)</td></tr>
+          <tr><td class="param-name">alarm</td><td><span class="type-badge">float</span></td><td class="optional">Valgfri</td><td>°C over setpunkt der udløser Alarm (standard: 5.0)</td></tr>
+          <tr><td class="param-name">warning</td><td><span class="type-badge">float</span></td><td class="optional">Valgfri</td><td>°C afvigelse der udløser Advarsel (standard: 2.0)</td></tr>
+        </tbody>
+      </table>
+      <div class="col-label">Eksempel</div>
+      <div class="code-block">{
+  <span class="key">"command"</span>: <span class="str">"setLimits"</span>,
+  <span class="key">"thermostat"</span>: <span class="num">2</span>,
+  <span class="key">"alarm"</span>: <span class="num">8.0</span>,
+  <span class="key">"warning"</span>: <span class="num">3.0</span>
+}</div>
+    </div>
+  </div>
+
+  <!-- setState -->
+  <div class="card">
+    <div class="card-header">
+      <span class="cmd-badge">setState</span>
+      <h3>Sæt termostat-tilstand manuelt</h3>
+    </div>
+    <div class="card-body">
+      <p>Overskriver en termostats tilstand direkte. Kan bruges til manuelt at sætte eller nulstille <b>HW Alarm</b>. HW Alarm sættes også automatisk af systemet ved sensorfejl eller temperatur uden for det gyldige interval (−30 – 150 °C).</p>
+      <table>
+        <thead><tr><th>Parameter</th><th>Type</th><th>Krav</th><th>Beskrivelse</th></tr></thead>
+        <tbody>
+          <tr><td class="param-name">thermostat</td><td><span class="type-badge">int</span></td><td class="required">Påkrævet</td><td>Termostatnummer (1–3)</td></tr>
+          <tr><td class="param-name">state</td><td><span class="type-badge">string</span></td><td class="required">Påkrævet</td><td><code>"HW Alarm"</code> eller <code>"clear"</code></td></tr>
+        </tbody>
+      </table>
+
+      <p><b>Gyldige tilstande (via API: kun HW Alarm og clear):</b></p>
+      <table>
+        <thead><tr><th>Tilstand</th><th>Beskrivelse</th><th>Sættes af</th></tr></thead>
+        <tbody>
+          <tr><td><span class="state-badge s-opvarmning">Opvarmning</span></td><td>Systemet opvarmer mod setpunktet</td><td>Automatisk</td></tr>
+          <tr><td><span class="state-badge s-run">Run</span></td><td>Temperatur er inden for grænser</td><td>Automatisk</td></tr>
+          <tr><td><span class="state-badge s-advarsel">Advarsel</span></td><td>Temperatur afviger mere end <code>warningLimit</code> fra setpunkt</td><td>Automatisk</td></tr>
+          <tr><td><span class="state-badge s-alarm">Alarm</span></td><td>Temperatur er mere end <code>alarmLimit</code> over setpunkt</td><td>Automatisk</td></tr>
+          <tr><td><span class="state-badge s-hwalarm">HW Alarm</span></td><td>Hardware-fejl — varme slukkes og låses. Sættes automatisk ved sensorfejl eller temperatur uden for −30 – 150 °C. Ryddes med <code>"clear"</code> via API (eller automatisk når sensoren igen er gyldig).</td><td>Automatisk + API</td></tr>
+        </tbody>
+      </table>
+
+      <div class="col-label" style="margin-top:14px">Eksempel — sæt HW Alarm</div>
+      <div class="code-block">{
+  <span class="key">"command"</span>: <span class="str">"setState"</span>,
+  <span class="key">"thermostat"</span>: <span class="num">1</span>,
+  <span class="key">"state"</span>: <span class="str">"HW Alarm"</span>
+}</div>
+      <div class="col-label" style="margin-top:14px">Eksempel — nulstil HW Alarm</div>
+      <div class="code-block">{
+  <span class="key">"command"</span>: <span class="str">"setState"</span>,
+  <span class="key">"thermostat"</span>: <span class="num">1</span>,
+  <span class="key">"state"</span>: <span class="str">"clear"</span>
+}</div>
+      <div class="error-note">Fejl hvis <code>state</code> ikke er <code>"HW Alarm"</code> eller <code>"clear"</code>.</div>
+    </div>
+  </div>
+
+  <!-- setManual -->
+  <div class="card">
+    <div class="card-header">
+      <span class="cmd-badge">setManual</span>
+      <h3>Manuel styring af varmeeffekt</h3>
+    </div>
+    <div class="card-body">
+      <p>Sætter en termostats driftstilstand. Tilstanden <code>pid</code> gendanner automatisk regulering; <code>off</code> og <code>on</code> slukker/tænder for fuld effekt; <code>percent</code> sætter en fast varmeeffekt.</p>
+      <table>
+        <thead><tr><th>Parameter</th><th>Type</th><th>Krav</th><th>Beskrivelse</th></tr></thead>
+        <tbody>
+          <tr><td class="param-name">thermostat</td><td><span class="type-badge">int</span></td><td class="required">Påkrævet</td><td>Termostatnummer (1–3)</td></tr>
+          <tr><td class="param-name">mode</td><td><span class="type-badge">string</span></td><td class="required">Påkrævet</td><td><code>"pid"</code>, <code>"off"</code>, <code>"on"</code> eller <code>"percent"</code></td></tr>
+          <tr><td class="param-name">percent</td><td><span class="type-badge">float</span></td><td class="optional">Påkrævet kun ved <code>mode: "percent"</code></td><td>Varmeeffekt i % (0–100)</td></tr>
+        </tbody>
+      </table>
+      <div class="two-col">
+        <div>
+          <div class="col-label">Eksempel — fast 40% effekt</div>
+          <div class="code-block">{
+  <span class="key">"command"</span>: <span class="str">"setManual"</span>,
+  <span class="key">"thermostat"</span>: <span class="num">2</span>,
+  <span class="key">"mode"</span>: <span class="str">"percent"</span>,
+  <span class="key">"percent"</span>: <span class="num">40.0</span>
+}</div>
+        </div>
+        <div>
+          <div class="col-label">Eksempel — tilbage til PID-regulering</div>
+          <div class="code-block">{
+  <span class="key">"command"</span>: <span class="str">"setManual"</span>,
+  <span class="key">"thermostat"</span>: <span class="num">2</span>,
+  <span class="key">"mode"</span>: <span class="str">"pid"</span>
+}</div>
+        </div>
+      </div>
+      <div class="response-note">Ved skift fra en anden tilstand tilbage til <code>pid</code> nulstilles PID-regulatoren med den aktuelle temperatur, så den ikke starter fra en forældet værdi.</div>
+      <div class="error-note">Fejl hvis <code>thermostat</code>/<code>mode</code> mangler, <code>mode</code> er ugyldig, eller <code>percent</code> mangler/er uden for 0–100 ved <code>mode: "percent"</code>.</div>
+    </div>
+  </div>
+
+  <!-- setOverride -->
+  <div class="card">
+    <div class="card-header">
+      <span class="cmd-badge">setOverride</span>
+      <h3>Global overstyring — fuld varme på alle termostater</h3>
+    </div>
+    <div class="card-body">
+      <p>Aktiverer eller deaktiverer manuel overstyring for <b>alle tre termostater samtidig</b> (100% effekt). Kan også aktiveres via den fysiske override-knap. Ved aktivering gemmes den aktuelle <code>manualMode</code>/<code>manualPercent</code> for hver termostat, og denne tilstand gendannes automatisk igen når overstyringen slås fra.</p>
+      <table>
+        <thead><tr><th>Parameter</th><th>Type</th><th>Krav</th><th>Beskrivelse</th></tr></thead>
+        <tbody>
+          <tr><td class="param-name">active</td><td><span class="type-badge">bool</span></td><td class="required">Påkrævet</td><td><code>true</code> = aktiver overstyring, <code>false</code> = deaktiver og gendan forrige tilstand</td></tr>
+        </tbody>
+      </table>
+      <div class="col-label">Eksempel — aktiver overstyring</div>
+      <div class="code-block">{
+  <span class="key">"command"</span>: <span class="str">"setOverride"</span>,
+  <span class="key">"active"</span>: <span class="bool">true</span>
+}</div>
+      <div class="response-note">Status for overstyringen kan altid ses i feltet <code>"override"</code> i status-svaret.</div>
+      <div class="error-note">Fejl hvis <code>active</code> mangler.</div>
+    </div>
+  </div>
+
+  <!-- lysshow -->
+  <div class="card">
+    <div class="card-header">
+      <span class="cmd-badge">lysshow</span>
+      <h3>LED- og display-selvtest</h3>
+    </div>
+    <div class="card-body">
+      <p>Kører en sekventiel selvtest af alle LED-grupper og TM1637-displayet: alle LED'er lyser samtidig, et Knight Rider-sweep over relæ-LED'erne, sensor-LED'erne løber igennem, termostat-status-LED'erne (grøn → gul → rød pr. termostat), varme-LED'erne, og displayet tæller 0–9 og viser til sidst "bRYG" og "HUS". Ingen parametre. <b>Relæer og varmerelæer påvirkes ikke</b> — kun LED- og display-udgange styres midlertidigt, og normal tilstand gendannes automatisk bagefter.</p>
+      <div class="col-label">Eksempel</div>
+      <div class="code-block">{ <span class="key">"command"</span>: <span class="str">"lysshow"</span> }</div>
+      <div class="response-note">Kommandoen er blokerende, mens showet kører, men watchdog'en holdes i live undervejs. Returnerer status når showet er færdigt.</div>
+    </div>
+  </div>
+
+  <!-- FYSISK BETJENING -->
+  <div class="section-title">Fysisk betjening</div>
+  <div class="info-box">
+    Controlleren kan betjenes direkte via knapper og TM1637-display uden brug af API'et.
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="cmd-badge" style="background:#1a5276">Sensorknap</span>
+      <h3>Skift sensor og rediger setpunkt</h3>
+    </div>
+    <div class="card-body">
+      <p>Sensorknappen styrer hvilket sensor der vises på displayet og giver adgang til setpunkt-editering.</p>
+      <table>
+        <thead><tr><th>Handling</th><th>Resultat</th></tr></thead>
+        <tbody>
+          <tr><td><b>Kort tryk</b></td><td>Skifter til næste sensor (1 → 2 → 3 → 4 → 1). Opdaterer sensor-LED'erne.</td></tr>
+          <tr><td><b>Langt tryk</b> (~800 ms)</td><td>Viser setpunktet for den aktuelle termostat på displayet i 2 sekunder. Sensor 4 har intet setpunkt og viser <code>----</code>.</td></tr>
+          <tr><td><b>Meget langt tryk</b> (~1800 ms)</td><td>Aktiverer <b>edit-mode</b>: setpunktet vises blinkende. Kun tilgængeligt for termostat 1–3.</td></tr>
+          <tr><td><b>Tryk i edit-mode</b></td><td>Afslutter edit-mode og gemmer det nye setpunkt i PID-regulatoren.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="cmd-badge" style="background:#1a5276">Edit-mode</span>
+      <h3>Justering af setpunkt via relæknapper</h3>
+    </div>
+    <div class="card-body">
+      <p>Når edit-mode er aktiv (setpunkt blinker på displayet), bruges relæknap 1 og 2 til at justere setpunktet. Relæknap 3 og 4 virker normalt i edit-mode.</p>
+      <table>
+        <thead><tr><th>Knap</th><th>Funktion i edit-mode</th></tr></thead>
+        <tbody>
+          <tr><td><b>Relæknap 1</b></td><td>Setpunkt +1 °C</td></tr>
+          <tr><td><b>Relæknap 2</b></td><td>Setpunkt −1 °C</td></tr>
+          <tr><td><b>Relæknap 3 / 4</b></td><td>Toggler relæ 3 / 4 som normalt</td></tr>
+          <tr><td><b>Sensorknap</b></td><td>Afslutter edit-mode og gemmer setpunktet</td></tr>
+        </tbody>
+      </table>
+      <div class="response-note">Setpunktet opdateres med det samme i PID-regulatoren når edit-mode afsluttes — ingen genstart nødvendig.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="cmd-badge" style="background:#1a5276">Override-knap</span>
+      <h3>Manuel fuld-varme-overstyring</h3>
+    </div>
+    <div class="card-body">
+      <p>En dedikeret fysisk knap med tilhørende rød LED. Ved tryk aktiveres fuld varme (100%) på alle tre termostater samtidig — samme funktion som <code>setOverride</code> via API'et. LED'en lyser, mens overstyringen er aktiv. Ved næste tryk deaktiveres overstyringen, og hver termostats tidligere tilstand (<code>manualMode</code>/<code>manualPercent</code>) gendannes.</p>
+    </div>
+  </div>
+
+  <!-- FEJLSVAR -->
+  <div class="section-title">Fejlsvar</div>
+  <div class="info-box">
+    Ved fejl returneres et JSON-objekt med <code>"success": false</code> og en fejlbeskrivelse:
+    <div class="code-block" style="margin-top:12px">{
+  <span class="key">"success"</span>: <span class="bool">false</span>,
+  <span class="key">"error"</span>: <span class="str">"Invalid relay"</span>
+}</div>
+    <br>
+    <b>Mulige fejlbeskeder:</b> <code>Invalid JSON</code> · <code>Missing relay/state</code> · <code>Invalid relay</code> · <code>Missing sensor</code> · <code>Invalid sensor</code> · <code>Missing thermostat/setpoint</code> · <code>Invalid thermostat</code> · <code>Missing thermostat</code> · <code>Missing thermostat/state</code> · <code>Invalid state</code> · <code>Invalid kp</code> · <code>Invalid ki</code> · <code>Invalid kd</code> · <code>Invalid percent</code> · <code>Missing percent</code> · <code>Missing thermostat/mode</code> · <code>Invalid mode</code> · <code>Missing active</code> · <code>Unknown command</code>
+  </div>
+
+</main>
+
+<footer>Termostat API Dokumentation · Arduino Serial JSON · 115200 baud</footer>
+</body>
+</html>
