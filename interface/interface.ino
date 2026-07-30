@@ -130,9 +130,13 @@ PID* pids[NUM_THERMOSTATS] = {&pid1, &pid2, &pid3};
 String thermostatState[NUM_THERMOSTATS] = {"Opvarmning", "Opvarmning", "Opvarmning"};
 
 // --- Manuel overstyringstilstand ---
-// Gyldige værdier: "pid", "off", "on", "percent"
+// Gyldige værdier: "pid", "off", "on", "percent", "auto"
 String manualMode[NUM_THERMOSTATS]   = {"pid", "pid", "pid"};
 double manualPercent[NUM_THERMOSTATS] = {0.0, 0.0, 0.0};
+
+// --- Auto-regulering: grænsetemperatur ---
+// Under denne grænse: 100% varme. Mellem grænse og setpunkt: PID. Over setpunkt: slukket.
+double autoThreshold[NUM_THERMOSTATS] = AUTO_THRESHOLDS;
 
 // Grænser er delta-værdier i °C relativt til setpunkt (kun termostat 1-3)
 double alarmLimit[NUM_THERMOSTATS]   = ALARM_LIMITS;
@@ -704,11 +708,11 @@ void updateRelay(int i) {
 
 // Opdater PID-input og beregn output.
 // Springes over hvis:
-//   - Manuel tilstand er aktiv, ELLER
+//   - Manuel tilstand er aktiv (undtagen "auto" som bruger PID), ELLER
 //   - Sensoren er i fejltilstand (NAN) — undgår ukontrolleret PID-adfærd
 void updatePID() {
   for (int i = 0; i < NUM_THERMOSTATS; i++) {
-    if (manualMode[i] != "pid") continue;
+    if (manualMode[i] != "pid" && manualMode[i] != "auto") continue;
     if (isnan(temps[i]))       continue; // Ingen gyldig temperatur — spring over
     pidInput[i] = temps[i];
     pids[i]->Compute();
@@ -755,6 +759,31 @@ void controlHeating() {
       } else {
         digitalWrite(heatRelayPins[i], LOW);
         heatRelayState[i] = false;
+      }
+      continue;
+
+    } else if (manualMode[i] == "auto") {
+      // Auto: Under grænse → 100%, mellem grænse og setpunkt → PID, over setpunkt → slukket
+      if (thermostatState[i] == "HW Alarm" || isnan(temps[i])) {
+        digitalWrite(heatRelayPins[i], LOW);
+        heatRelayState[i] = false;
+      } else if ((double)temps[i] > setpoint[i]) {
+        // Over setpunkt: varme slukket
+        digitalWrite(heatRelayPins[i], LOW);
+        heatRelayState[i] = false;
+      } else if ((double)temps[i] < autoThreshold[i]) {
+        // Under grænse: fuld varme (100%)
+        digitalWrite(heatRelayPins[i], HIGH);
+        heatRelayState[i] = true;
+      } else {
+        // Mellem grænse og setpunkt: PID time-proportional
+        if (pidOutput[i] > 0.0 && (unsigned long)pidOutput[i] > elapsed) {
+          digitalWrite(heatRelayPins[i], HIGH);
+          heatRelayState[i] = true;
+        } else {
+          digitalWrite(heatRelayPins[i], LOW);
+          heatRelayState[i] = false;
+        }
       }
       continue;
     }
@@ -958,8 +987,19 @@ void sendStatus() {
       heatPct = (float)(pidOutput[i] / (double)windowSize[i] * 100.0);
       if (heatPct < 0.0)   heatPct = 0.0;
       if (heatPct > 100.0) heatPct = 100.0;
+    } else if (manualMode[i] == "auto" && thermostatState[i] != "HW Alarm" && !isnan(temps[i])) {
+      if ((double)temps[i] > setpoint[i]) {
+        heatPct = 0.0;
+      } else if ((double)temps[i] < autoThreshold[i]) {
+        heatPct = 100.0;
+      } else {
+        heatPct = (float)(pidOutput[i] / (double)windowSize[i] * 100.0);
+        if (heatPct < 0.0)   heatPct = 0.0;
+        if (heatPct > 100.0) heatPct = 100.0;
+      }
     }
-    t["heatPercent"] = serialized(String(heatPct, 1));
+    t["heatPercent"]   = serialized(String(heatPct, 1));
+    t["autoThreshold"] = autoThreshold[i];
   }
 
   // --- Sensor 4 (ekstra/ambient) ---
@@ -1256,7 +1296,7 @@ void handleJson(String json) {
     if (t < 0 || t >= NUM_THERMOSTATS) { sendError("Invalid thermostat"); return; }
 
     String mode = doc["mode"].as<String>();
-    if (mode != "pid" && mode != "off" && mode != "on" && mode != "percent") {
+    if (mode != "pid" && mode != "off" && mode != "on" && mode != "percent" && mode != "auto") {
       sendError("Invalid mode"); return;
     }
 
@@ -1267,10 +1307,8 @@ void handleJson(String json) {
       manualPercent[t] = pct;
     }
 
-    if (mode == "pid" && manualMode[t] != "pid") {
-      // Opdater pidInput med aktuel temperatur FØR SetMode(AUTOMATIC),
-      // så PID_v1's Initialize() bruger en frisk lastInput-værdi
-      // og ikke en potentielt forældet værdi fra forrige PID-session.
+    // Initialisér PID ved skift til pid/auto fra en ikke-PID tilstand
+    if ((mode == "pid" || mode == "auto") && (manualMode[t] != "pid" && manualMode[t] != "auto")) {
       if (!isnan(temps[t])) {
         pidInput[t] = temps[t];
       }
@@ -1280,6 +1318,39 @@ void handleJson(String json) {
     }
 
     manualMode[t] = mode;
+    sendStatus();
+    return;
+  }
+
+  // --- setAuto: { "command": "setAuto", "thermostat": 1-3,
+  //               "threshold": float, "setpoint": float (valgfri) } ---
+  // Sætter grænsetemperatur og aktiverer "auto"-tilstand.
+  // Under grænsen: 100% varme. Mellem grænse og setpunkt: PID. Over setpunkt: slukket.
+  if (cmd == "setAuto") {
+    if (!doc.containsKey("thermostat") || !doc.containsKey("threshold")) {
+      sendError("Missing thermostat/threshold"); return;
+    }
+    int t = doc["thermostat"].as<int>() - 1;
+    if (t < 0 || t >= NUM_THERMOSTATS) { sendError("Invalid thermostat"); return; }
+
+    double threshold = doc["threshold"].as<double>();
+    autoThreshold[t] = threshold;
+
+    if (doc.containsKey("setpoint")) {
+      setpoint[t] = doc["setpoint"].as<double>();
+      if (setpoint[t] <= autoThreshold[t]) { sendError("setpoint must be greater than threshold"); return; }
+    }
+
+    // Initialisér PID hvis vi skifter fra en ikke-PID tilstand
+    if (manualMode[t] != "pid" && manualMode[t] != "auto") {
+      if (!isnan(temps[t])) {
+        pidInput[t] = temps[t];
+      }
+      pids[t]->SetMode(MANUAL);
+      pidOutput[t] = 0;
+      pids[t]->SetMode(AUTOMATIC);
+    }
+    manualMode[t] = "auto";
     sendStatus();
     return;
   }

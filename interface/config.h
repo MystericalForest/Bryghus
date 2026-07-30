@@ -131,6 +131,18 @@
 
 
 // =============================================================================
+// AUTO-REGULERING — GRÆNSETEMPERATUR
+// Under denne temperatur kører varmeelementet på 100% i "auto"-tilstand.
+// Mellem grænsen og setpunkt reguleres af PID.
+// Over setpunkt er varmen slukket.
+// Kan ændres runtime via setAuto-kommandoen.
+// Index:  0     1     2   (termostat 1, 2, 3)
+// =============================================================================
+
+#define AUTO_THRESHOLDS  {0.0, 0.0, 0.0}  // Startgrænser i °C
+
+
+// =============================================================================
 // PWM-VINDUE (Time-Proportional varmestyring)
 // Størrelsen bestemmer hvor ofte varmerelæet kan skifte tilstand.
 // Større vindue = mere jævn regulering, men langsommere reaktion.

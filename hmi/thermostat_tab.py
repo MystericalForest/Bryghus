@@ -1,5 +1,9 @@
 import time
+import csv
+import re
 from collections import deque
+from datetime import datetime
+from pathlib import Path
 
 import pyqtgraph as pg
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
@@ -25,6 +29,10 @@ _STATE_COLORS = {
 class ThermostatTab(QWidget):
     command_requested = pyqtSignal(dict)
 
+    @staticmethod
+    def _format_decimal(value: float) -> str:
+        return f"{value:.3f}".replace(".", ",")
+
     def __init__(self, thermostat_index: int, name: str, parent=None):
         super().__init__(parent)
         self._index = thermostat_index  # 1-based
@@ -32,6 +40,12 @@ class ThermostatTab(QWidget):
         self._start_time = time.monotonic()
         self._time_buf: deque = deque(maxlen=1800)
         self._temp_buf: deque = deque(maxlen=1800)
+        self._log_interval_s = 5.0
+        self._is_logging = False
+        self._last_log_ts = 0.0
+        self._log_file = None
+        self._log_writer = None
+        self._log_path = ""
         self._setup_ui()
 
     # ------------------------------------------------------------------
@@ -89,6 +103,18 @@ class ThermostatTab(QWidget):
         self.hw_alarm_btn.setVisible(False)
         self.hw_alarm_btn.clicked.connect(self._on_hw_alarm_reset)
 
+        # CSV logging controls
+        log_row = QHBoxLayout()
+        self._log_btn = QPushButton("Start logning")
+        self._log_btn.setStyleSheet("background-color: #1565c0; color: white;")
+        self._log_btn.clicked.connect(self._on_toggle_logging)
+
+        self._log_status = QLabel("Logning: stoppet")
+        self._log_status.setStyleSheet("color: #9e9e9e;")
+
+        log_row.addWidget(self._log_btn)
+        log_row.addWidget(self._log_status, 1)
+
         # Temperature graph
         self.graph = pg.PlotWidget()
         self.graph.setBackground("#1e1e1e")
@@ -122,6 +148,7 @@ class ThermostatTab(QWidget):
         left_layout.addLayout(status_row)
         left_layout.addLayout(heater_row)
         left_layout.addWidget(self.hw_alarm_btn)
+        left_layout.addLayout(log_row)
         left_layout.addWidget(self.graph, 1)
 
         # ---- RIGHT: control panels in scroll area ----
@@ -134,6 +161,7 @@ class ThermostatTab(QWidget):
         right_vbox.addWidget(self._build_pid_group())
         right_vbox.addWidget(self._build_limits_group())
         right_vbox.addWidget(self._build_manual_group())
+        right_vbox.addWidget(self._build_auto_group())
         right_vbox.addStretch()
 
         scroll = QScrollArea()
@@ -227,6 +255,7 @@ class ThermostatTab(QWidget):
         self.rb_off     = QRadioButton("Off")
         self.rb_on      = QRadioButton("Fuld On")
         self.rb_percent = QRadioButton("Procent")
+        self.rb_auto    = QRadioButton("Auto")
         self.rb_pid.setChecked(True)
 
         radio_row1 = QHBoxLayout()
@@ -236,6 +265,10 @@ class ThermostatTab(QWidget):
         radio_row2 = QHBoxLayout()
         radio_row2.addWidget(self.rb_on)
         radio_row2.addWidget(self.rb_percent)
+
+        radio_row3 = QHBoxLayout()
+        radio_row3.addWidget(self.rb_auto)
+        radio_row3.addStretch()
 
         pct_row = QHBoxLayout()
         pct_lbl = QLabel("Procent:")
@@ -256,8 +289,33 @@ class ThermostatTab(QWidget):
 
         vbox.addLayout(radio_row1)
         vbox.addLayout(radio_row2)
+        vbox.addLayout(radio_row3)
         vbox.addLayout(pct_row)
         vbox.addWidget(self._manual_btn)
+        return group
+
+    def _build_auto_group(self) -> QGroupBox:
+        group = QGroupBox("Auto-regulering")
+        form = QFormLayout(group)
+        form.setSpacing(8)
+
+        self.threshold_spin = QDoubleSpinBox()
+        self.threshold_spin.setRange(-30.0, 149.5)
+        self.threshold_spin.setSingleStep(0.5)
+        self.threshold_spin.setDecimals(1)
+        self.threshold_spin.setSuffix("  °C")
+
+        note = QLabel("Setpunkt hentes fra PID-gruppe.")
+        note.setStyleSheet("color: #9e9e9e; font-size: 11px;")
+        note.setWordWrap(True)
+
+        self._auto_btn = QPushButton("Send Auto")
+        self._auto_btn.setStyleSheet("background-color: #0d47a1; color: white;")
+        self._auto_btn.clicked.connect(self._on_send_auto)
+
+        form.addRow("Grænse (100%):", self.threshold_spin)
+        form.addRow(note)
+        form.addRow("", self._auto_btn)
         return group
 
     # ------------------------------------------------------------------
@@ -336,6 +394,16 @@ class ThermostatTab(QWidget):
                                      "alarm": self._n(self.alarm_spin.value())})
         self._flash_ok(self._limits_btn)
 
+    def _on_send_auto(self):
+        t = self._index
+        self.command_requested.emit({
+            "command": "setAuto",
+            "thermostat": t,
+            "threshold": self._n(self.threshold_spin.value()),
+            "setpoint":  self._n(self.sp_spin.value()),
+        })
+        self._flash_ok(self._auto_btn)
+
     def _on_send_manual(self):
         if self.rb_pid.isChecked():
             mode = "pid"
@@ -343,6 +411,8 @@ class ThermostatTab(QWidget):
             mode = "off"
         elif self.rb_on.isChecked():
             mode = "on"
+        elif self.rb_auto.isChecked():
+            mode = "auto"
         else:
             mode = "percent"
 
@@ -355,6 +425,114 @@ class ThermostatTab(QWidget):
             cmd["percent"] = self.pct_spin.value()
         self.command_requested.emit(cmd)
         self._flash_ok(self._manual_btn)
+
+    def _on_toggle_logging(self):
+        if self._is_logging:
+            self._stop_logging()
+        else:
+            self._start_logging()
+
+    def _start_logging(self):
+        if self._is_logging:
+            return
+
+        try:
+            logs_dir = Path(__file__).resolve().parent.parent / "logs"
+            logs_dir.mkdir(parents=True, exist_ok=True)
+
+            safe_name = re.sub(r"[^A-Za-z0-9_-]+", "_", self._name).strip("_")
+            if not safe_name:
+                safe_name = f"thermostat_{self._index}"
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            path = logs_dir / f"{safe_name}_{ts}.csv"
+
+            self._log_file = path.open("w", newline="", encoding="utf-8")
+            self._log_writer = csv.writer(self._log_file, delimiter=";")
+            self._log_writer.writerow([
+                "timestamp",
+                "thermostat_navn",
+                "temperature",
+                "setpoint",
+                "reguleringstype",
+                "state",
+                "heater",
+                "heat_percent",
+            ])
+            self._log_file.flush()
+
+            self._is_logging = True
+            self._last_log_ts = 0.0
+            self._log_path = str(path)
+            self._log_btn.setText("Stop og gem")
+            self._log_btn.setStyleSheet("background-color: #b71c1c; color: white;")
+            self._log_status.setText(f"Logger: {path.name}")
+            self._log_status.setStyleSheet("color: #4caf50;")
+        except OSError as exc:
+            self._is_logging = False
+            self._log_writer = None
+            if self._log_file:
+                try:
+                    self._log_file.close()
+                except OSError:
+                    pass
+            self._log_file = None
+            self._log_path = ""
+            self._log_status.setText(f"Log fejl: {exc}")
+            self._log_status.setStyleSheet("color: #f44336;")
+
+    def _stop_logging(self, announce_saved: bool = True):
+        if not self._is_logging and self._log_file is None:
+            return
+
+        path = self._log_path
+        if self._log_file:
+            try:
+                self._log_file.flush()
+                self._log_file.close()
+            except OSError as exc:
+                self._log_status.setText(f"Log fejl ved lukning: {exc}")
+                self._log_status.setStyleSheet("color: #f44336;")
+
+        self._is_logging = False
+        self._log_file = None
+        self._log_writer = None
+        self._log_path = ""
+        self._last_log_ts = 0.0
+        self._log_btn.setText("Start logning")
+        self._log_btn.setStyleSheet("background-color: #1565c0; color: white;")
+        if path and announce_saved:
+            self._log_status.setText(f"Gemt: {Path(path).name}")
+            self._log_status.setStyleSheet("color: #9e9e9e;")
+        elif announce_saved:
+            self._log_status.setText("Logning: stoppet")
+            self._log_status.setStyleSheet("color: #9e9e9e;")
+
+    def _write_log_row(self, data: ThermostatData, now_monotonic: float):
+        if not self._is_logging or self._log_writer is None:
+            return
+        if data.temperature is None:
+            return
+        if now_monotonic - self._last_log_ts < self._log_interval_s:
+            return
+
+        try:
+            self._log_writer.writerow([
+                datetime.now().isoformat(timespec="seconds"),
+                self._name,
+                self._format_decimal(data.temperature),
+                self._format_decimal(data.setpoint),
+                data.manual_mode,
+                data.state,
+                int(data.heater),
+                self._format_decimal(data.heat_percent),
+            ])
+            if self._log_file:
+                self._log_file.flush()
+            self._last_log_ts = now_monotonic
+        except OSError as exc:
+            self._log_status.setText(f"Log fejl: {exc}")
+            self._log_status.setStyleSheet("color: #f44336;")
+            self._stop_logging(announce_saved=False)
 
     # ------------------------------------------------------------------
     # Data update
@@ -399,6 +577,13 @@ class ThermostatTab(QWidget):
             self._temp_curve.setData(x_rel, ys)
         self.graph.setXRange(-30, 0, padding=0)
 
+        # CSV logging at fixed sampling interval from incoming status updates.
+        self._write_log_row(data, time.monotonic())
+
+    def closeEvent(self, event):
+        self._stop_logging()
+        super().closeEvent(event)
+
         # --- Limit lines ---
         sp = data.setpoint
         self._sp_line.setValue(sp)
@@ -418,23 +603,25 @@ class ThermostatTab(QWidget):
             spin.blockSignals(False)
 
     def _sync_controls(self, data: ThermostatData):
-        self._sync_spin(self.sp_spin,      data.setpoint)
-        self._sync_spin(self.kp_spin,      data.kp)
-        self._sync_spin(self.ki_spin,      data.ki)
-        self._sync_spin(self.kd_spin,      data.kd)
-        self._sync_spin(self.window_spin,  data.window_size)
-        self._sync_spin(self.warning_spin, data.warning_limit)
-        self._sync_spin(self.alarm_spin,   data.alarm_limit)
-        self._sync_spin(self.pct_spin,     data.manual_percent)
+        self._sync_spin(self.sp_spin,        data.setpoint)
+        self._sync_spin(self.kp_spin,         data.kp)
+        self._sync_spin(self.ki_spin,         data.ki)
+        self._sync_spin(self.kd_spin,         data.kd)
+        self._sync_spin(self.window_spin,     data.window_size)
+        self._sync_spin(self.warning_spin,    data.warning_limit)
+        self._sync_spin(self.alarm_spin,      data.alarm_limit)
+        self._sync_spin(self.pct_spin,        data.manual_percent)
+        self._sync_spin(self.threshold_spin,  data.auto_threshold)
 
         # Sync manual mode radio buttons (only if none of them have focus)
-        radios = (self.rb_pid, self.rb_off, self.rb_on, self.rb_percent)
+        radios = (self.rb_pid, self.rb_off, self.rb_on, self.rb_percent, self.rb_auto)
         if not any(r.hasFocus() for r in radios):
             mode_map = {
                 "pid":     self.rb_pid,
                 "off":     self.rb_off,
                 "on":      self.rb_on,
                 "percent": self.rb_percent,
+                "auto":    self.rb_auto,
             }
             target = mode_map.get(data.manual_mode, self.rb_pid)
             if not target.isChecked():

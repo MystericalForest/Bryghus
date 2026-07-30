@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Termostat Controller — Betjeningsvejledning</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f6f9; color: #2c3e50; }
+
+    header {
+      background: linear-gradient(135deg, #1a2a4a, #2e75b6);
+      color: white;
+      padding: 40px 48px 32px;
+    }
+    header h1 { font-size: 28px; font-weight: 700; margin-bottom: 6px; }
+    header p  { font-size: 14px; opacity: 0.8; }
+
+    .meta-bar {
+      background: #1e3a5f;
+      color: #a8c8e8;
+      padding: 10px 48px;
+      font-size: 12px;
+      display: flex; gap: 32px; flex-wrap: wrap;
+    }
+    .meta-bar span b { color: #fff; }
+
+    main { max-width: 980px; margin: 36px auto; padding: 0 24px 60px; }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #2e75b6;
+      margin: 44px 0 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #d0e4f5;
+    }
+
+    .info-box {
+      background: #fff;
+      border-left: 4px solid #2e75b6;
+      border-radius: 6px;
+      padding: 18px 24px;
+      margin-bottom: 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .info-box code { background: #eef4fb; padding: 2px 6px; border-radius: 3px; font-size: 13px; color: #1a5a9a; }
+
+    /* Cards */
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 24px;
+      background: #f0f6fd;
+      border-bottom: 1px solid #dde8f5;
+    }
+    .card-header h3 { font-size: 15px; color: #1a2a4a; font-weight: 600; }
+    .card-body { padding: 20px 24px; }
+    .card-body p { font-size: 14px; color: #4a5568; margin-bottom: 14px; line-height: 1.6; }
+
+    /* Icon badge for physical components */
+    .hw-badge {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .hw-btn   { background: #dde8f5; }
+    .hw-led   { background: #fef9e7; }
+    .hw-disp  { background: #e8f5e9; }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 16px; }
+    thead tr { background: #1a2a4a; color: white; }
+    thead th { padding: 9px 14px; text-align: left; font-weight: 600; }
+    tbody tr { border-bottom: 1px solid #e8eef5; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #f7fafd; }
+    tbody td { padding: 9px 14px; vertical-align: top; line-height: 1.5; }
+    .col-key { font-weight: 600; white-space: nowrap; }
+
+    /* LED dot */
+    .led {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      vertical-align: middle;
+      margin-right: 5px;
+      box-shadow: 0 0 4px rgba(0,0,0,0.25);
+    }
+    .led-red    { background: #e74c3c; box-shadow: 0 0 6px #e74c3c88; }
+    .led-yellow { background: #f1c40f; box-shadow: 0 0 6px #f1c40f88; }
+    .led-green  { background: #27ae60; box-shadow: 0 0 6px #27ae6088; }
+    .led-orange { background: #e67e22; box-shadow: 0 0 6px #e67e2288; }
+    .led-off    { background: #bdc3c7; box-shadow: none; }
+
+    .blink-label {
+      font-style: italic;
+      color: #7f8c8d;
+      font-size: 12px;
+    }
+
+    /* Step flow */
+    .steps { list-style: none; padding: 0; margin: 0 0 16px 0; }
+    .steps li {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      padding: 10px 0;
+      border-bottom: 1px dashed #e0e8f0;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .steps li:last-child { border-bottom: none; }
+    .step-num {
+      background: #2e75b6;
+      color: white;
+      border-radius: 50%;
+      width: 24px; height: 24px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    /* Press duration pills */
+    .press {
+      display: inline-block;
+      border-radius: 12px;
+      padding: 3px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .press-kort   { background: #d6eaf8; color: #1a5276; }
+    .press-lang   { background: #d5f5e3; color: #1e6b40; }
+    .press-lang2  { background: #fef9e7; color: #7d6608; border: 1px solid #f9e79f; }
+    .press-edit   { background: #f5eef8; color: #6c3483; }
+
+    /* two-col layout */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+
+    /* State chips */
+    .state-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .s-opvarmning { background: #d6eaf8; color: #1a5276; }
+    .s-run        { background: #d5f5e3; color: #1e6b40; }
+    .s-advarsel   { background: #fef9e7; color: #7d6608; border: 1px solid #f9e79f; }
+    .s-alarm      { background: #fdedec; color: #922b21; }
+    .s-hwalarm    { background: #f5eef8; color: #6c3483; }
+
+    .note {
+      background: #f0faf2;
+      border-left: 3px solid #27ae60;
+      border-radius: 4px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #2c6e3f;
+      margin-top: 12px;
+      line-height: 1.6;
+    }
+    .warn {
+      background: #fdf3f3;
+      border-left: 3px solid #e74c3c;
+      border-radius: 4px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #922b21;
+      margin-top: 10px;
+      line-height: 1.6;
+    }
+
+    /* Layout overview */
+    .overview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 14px;
+      margin-bottom: 8px;
+    }
+    .overview-item {
+      background: #fff;
+      border: 1px solid #dde8f5;
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-size: 13px;
+    }
+    .overview-item .ov-title {
+      font-weight: 700;
+      color: #1a2a4a;
+      margin-bottom: 4px;
+      font-size: 13px;
+    }
+    .overview-item .ov-count {
+      font-size: 22px;
+      font-weight: 700;
+      color: #2e75b6;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .overview-item .ov-desc {
+      color: #7f8c8d;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 12px;
+      color: #999;
+      padding: 24px;
+      border-top: 1px solid #e0e8f0;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Termostat Controller — Betjeningsvejledning</h1>
+  <p>Fysisk betjening via knapper, LED-indikatorer og TM1637-display</p>
+</header>
+
+<div class="meta-bar">
+  <span><b>Relæknapper:</b> 4</span>
+  <span><b>Sensorknap:</b> 1</span>
+  <span><b>Override-knap:</b> 1</span>
+  <span><b>Display:</b> TM1637 4-cifret</span>
+  <span><b>Sensor-LED'er:</b> 4</span>
+  <span><b>Termostat status-LED'er:</b> 3 × (Rød + Gul + Grøn)</span>
+  <span><b>Varme-LED'er:</b> 3</span>
+</div>
+
+<main>
+
+  <!-- OVERBLIK -->
+  <div class="section-title">Overblik over fysiske betjeningselementer</div>
+  <div class="overview-grid">
+    <div class="overview-item">
+      <div class="ov-count">4</div>
+      <div class="ov-title">Relæknapper</div>
+      <div class="ov-desc">Tænder/slukker hvert af de fire normale relæer. Fungerer som setpunkt-justering i edit-mode.</div>
+    </div>
+    <div class="overview-item">
+      <div class="ov-count">1</div>
+      <div class="ov-title">Sensorknap</div>
+      <div class="ov-desc">Skifter sensor på display. Kort/langt/meget langt tryk giver adgang til setpunkt og edit-mode.</div>
+    </div>
+    <div class="overview-item">
+      <div class="ov-count">1</div>
+      <div class="ov-title">Override-knap</div>
+      <div class="ov-desc">Tvinger 100 % varme på alle tre termostater på én gang. Rød LED lyser mens aktiv.</div>
+    </div>
+    <div class="overview-item">
+      <div class="ov-count">TM1637</div>
+      <div class="ov-title">4-cifret display</div>
+      <div class="ov-desc">Viser temperatur (1 decimal) for den valgte sensor, eller setpunkt ved langt/edit-tryk.</div>
+    </div>
+    <div class="overview-item">
+      <div class="ov-count">4</div>
+      <div class="ov-title">Sensor-LED'er</div>
+      <div class="ov-desc">Én LED pr. sensor. Den aktive sensor lyser, resten er slukket.</div>
+    </div>
+    <div class="overview-item">
+      <div class="ov-count">3 × 3</div>
+      <div class="ov-title">Status-LED'er</div>
+      <div class="ov-desc">Rød, Gul og Grøn pr. termostat. Viser driftstilstand, alarm og fejl.</div>
+    </div>
+    <div class="overview-item">
+      <div class="ov-count">3</div>
+      <div class="ov-title">Varme-LED'er</div>
+      <div class="ov-desc">Én pr. termostat. Lyser når varmerelæet er aktivt (PWM-puls slår til).</div>
+    </div>
+  </div>
+
+
+  <!-- RELÆKNAPPER -->
+  <div class="section-title">Relæknapper (1–4)</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="hw-badge hw-btn">🔘</div>
+      <h3>Normal betjening</h3>
+    </div>
+    <div class="card-body">
+      <p>Hvert af de fire relæer har sin egen knap med tilhørende status-LED. Et tryk toggler relæets tilstand: tænd → sluk → tænd osv. LED'en lyser når relæet er aktivt.</p>
+      <table>
+        <thead><tr><th>Knap</th><th>Handling</th><th>LED</th></tr></thead>
+        <tbody>
+          <tr><td class="col-key">Relæknap 1</td><td>Toggler relæ 1</td><td><span class="led led-green"></span>Lyser ved aktiv</td></tr>
+          <tr><td class="col-key">Relæknap 2</td><td>Toggler relæ 2</td><td><span class="led led-green"></span>Lyser ved aktiv</td></tr>
+          <tr><td class="col-key">Relæknap 3</td><td>Toggler relæ 3</td><td><span class="led led-green"></span>Lyser ved aktiv</td></tr>
+          <tr><td class="col-key">Relæknap 4</td><td>Toggler relæ 4</td><td><span class="led led-green"></span>Lyser ved aktiv</td></tr>
+        </tbody>
+      </table>
+      <div class="note">I <b>edit-mode</b> (setpunkt blinker på displayet) ændrer relæknap 1 og 2 funktion: knap 1 = <b>+1 °C</b>, knap 2 = <b>−1 °C</b>. Knap 3 og 4 toggler relæet som normalt.</div>
+    </div>
+  </div>
+
+
+  <!-- SENSORKNAP -->
+  <div class="section-title">Sensorknap</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="hw-badge hw-btn">👆</div>
+      <h3>Tryktider og funktioner</h3>
+    </div>
+    <div class="card-body">
+      <p>Sensorknappen har tre tryktider, der giver adgang til tre forskellige funktioner. Debounce-tid er 50 ms.</p>
+      <table>
+        <thead><tr><th>Tryktid</th><th>Betingelse</th><th>Handling</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="press press-kort">Kort tryk</span><br><span style="font-size:11px;color:#7f8c8d">&lt; 800 ms</span></td>
+            <td>Udenfor edit-mode</td>
+            <td>Skifter til næste sensor: 1 → 2 → 3 → 4 → 1. Sensor-LED'erne opdateres øjeblikkeligt.</td>
+          </tr>
+          <tr>
+            <td><span class="press press-lang">Langt tryk</span><br><span style="font-size:11px;color:#7f8c8d">≥ 800 ms</span></td>
+            <td>Udenfor edit-mode, termostat 1–3 valgt</td>
+            <td>Viser setpunktet for den aktuelle termostat på displayet i 2 sekunder. Herefter skifter displayet automatisk tilbage til temperaturvisning. Sensor 4 viser <code>----</code> (ingen termostat).</td>
+          </tr>
+          <tr>
+            <td><span class="press press-lang2">Meget langt tryk</span><br><span style="font-size:11px;color:#7f8c8d">≥ 1800 ms</span></td>
+            <td>Termostat 1–3 valgt</td>
+            <td>Aktiverer <b>edit-mode</b>: setpunktet vises blinkende på displayet. Relæknap 1/2 justerer setpunktet ±1 °C pr. tryk. Afslut med et kort tryk på sensorknappen.</td>
+          </tr>
+          <tr>
+            <td><span class="press press-edit">Tryk i edit-mode</span></td>
+            <td>Edit-mode er aktiv</td>
+            <td>Afslutter edit-mode og gemmer det nye setpunkt i PID-regulatoren. Displayet vender tilbage til temperaturvisning.</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="note">Det meget lange tryk aktiveres mens setpunktet allerede vises (dvs. knappen holdes inde fra 800 ms til 1800 ms). Edit-mode kan kun aktiveres for sensor 1–3 — sensor 4 har ingen termostat og understøtter ikke edit-mode.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="hw-badge hw-led">💡</div>
+      <h3>Sensor-LED'er</h3>
+    </div>
+    <div class="card-body">
+      <p>Én LED pr. sensor (1–4). Kun den aktuelt valgte sensor lyser — de øvrige tre er slukket. LED'erne opdateres ved hvert sensorskift.</p>
+      <table>
+        <thead><tr><th>LED</th><th>Tilstand</th></tr></thead>
+        <tbody>
+          <tr><td class="col-key">Sensor-LED 1–4</td><td><span class="led led-green"></span>Én lyser (aktiv sensor) — de øvrige er slukket</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+
+  <!-- DISPLAY -->
+  <div class="section-title">TM1637 Display</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="hw-badge hw-disp">🖥</div>
+      <h3>Displaytilstande</h3>
+    </div>
+    <div class="card-body">
+      <p>Det 4-cifrede display viser altid den senest valgte sensors information. Temperaturer vises med én decimal (f.eks. <code>23.4</code>). Ved sensorfejl vises <code>----</code>.</p>
+      <table>
+        <thead><tr><th>Tilstand</th><th>Udløst af</th><th>Displayindhold</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="col-key">Normal</td>
+            <td>Altid (grundtilstand)</td>
+            <td>Aktuel temperatur i °C med 1 decimal. <code>----</code> ved sensorfejl.</td>
+          </tr>
+          <tr>
+            <td class="col-key">Setpunkt-visning</td>
+            <td>Langt tryk på sensorknap (≥ 800 ms)</td>
+            <td>Setpunktet for aktuel termostat med 1 decimal. Vises i 2 sekunder, herefter skift til normal. Sensor 4 viser <code>----</code>.</td>
+          </tr>
+          <tr>
+            <td class="col-key">Edit-mode</td>
+            <td>Meget langt tryk (≥ 1800 ms)</td>
+            <td>Setpunktet blinker (400 ms interval). Justeres med relæknap 1 (+1 °C) og 2 (−1 °C). Afsluttes med tryk på sensorknap.</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="note">Negative temperaturer og setpunkter vises med minustegn som første segment (f.eks. <code>-5.2</code>). Displayet bruger altid maksimal lysstyrke (konfigureret i firmware).</div>
+    </div>
+  </div>
+
+
+  <!-- OVERRIDE KNAP -->
+  <div class="section-title">Override-knap — fuld varme på alle termostater</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="hw-badge hw-btn">⚡</div>
+      <h3>Manuel overstyring</h3>
+    </div>
+    <div class="card-body">
+      <p>Override-knappen aktiverer eller deaktiverer fuld varme (100 % effekt) på <b>alle tre termostater samtidig</b>, uanset hvilken tilstand de befinder sig i. En rød LED viser om overstyringen er aktiv.</p>
+      <ul class="steps">
+        <li>
+          <div class="step-num">1</div>
+          <div><b>Tryk én gang</b> — Overstyring aktiveres. Alle termostater sættes til 100 % varme. Den røde LED tænder. Systemet husker hvilken tilstand (<code>manualMode</code>/<code>manualPercent</code>) hver termostat befandt sig i.</div>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <div><b>Tryk igen</b> — Overstyring deaktiveres. Hver termostats tidligere tilstand gendannes automatisk. Den røde LED slukker.</div>
+        </li>
+      </ul>
+      <table>
+        <thead><tr><th>LED (override)</th><th>Betydning</th></tr></thead>
+        <tbody>
+          <tr><td><span class="led led-red"></span><b>Rød lyser</b></td><td>Overstyring er aktiv — alle termostater kører 100 % varme</td></tr>
+          <tr><td><span class="led led-off"></span><b>Slukket</b></td><td>Normal drift — termostater kører i deres konfigurerede tilstand</td></tr>
+        </tbody>
+      </table>
+      <div class="warn"><b>OBS:</b> Overstyringen tilsidesætter PID-regulering, alarmer og advarselstilstande for varmestyringen. HW Alarm stopper <em>ikke</em> varmen under overstyring.</div>
+    </div>
+  </div>
+
+
+  <!-- STATUS LED'ER -->
+  <div class="section-title">Termostat status-LED'er (1–3)</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="hw-badge hw-led">🚦</div>
+      <h3>Tre LED'er pr. termostat — Rød, Gul, Grøn</h3>
+    </div>
+    <div class="card-body">
+      <p>Hver af de tre termostater har sin egen gruppe af tre status-LED'er. Indikationen afhænger af driftstilstanden (<code>manualMode</code>) og termostatens tilstand. Blinkende LED'er skifter hvert 500 ms.</p>
+
+      <p style="margin-top:4px"><b>PID-tilstand og Auto-tilstand</b></p>
+      <table>
+        <thead><tr><th>Tilstand</th><th>LED-indikation</th><th>Beskrivelse</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="state-badge s-opvarmning">Opvarmning</span></td>
+            <td><span class="led led-green"></span><b>Grøn blinker</b> <span class="blink-label">(500 ms)</span></td>
+            <td>Temperaturen er mere end <code>alarmLimit</code> °C under setpunktet — systemet opvarmer aktivt.</td>
+          </tr>
+          <tr>
+            <td><span class="state-badge s-run">Run</span></td>
+            <td><span class="led led-green"></span><b>Grøn lyser</b></td>
+            <td>Temperaturen er inden for advarselsgrænsen. Normal drift.</td>
+          </tr>
+          <tr>
+            <td><span class="state-badge s-advarsel">Advarsel</span></td>
+            <td><span class="led led-yellow"></span><b>Gul lyser</b></td>
+            <td>Temperaturen afviger mere end <code>warningLimit</code> °C fra setpunktet (men ikke nok til Alarm).</td>
+          </tr>
+          <tr>
+            <td><span class="state-badge s-alarm">Alarm</span></td>
+            <td><span class="led led-red"></span><b>Rød lyser</b></td>
+            <td>Temperaturen er mere end <code>alarmLimit</code> °C <em>over</em> setpunktet — overophedning.</td>
+          </tr>
+          <tr>
+            <td><span class="state-badge s-hwalarm">HW Alarm</span></td>
+            <td><span class="led led-red"></span><b>Rød blinker</b> <span class="blink-label">(500 ms)</span></td>
+            <td>Hardware-fejl: sensorfejl (MAX31865), temperatur uden for −30 – 150 °C, eller manuelt sat via API. Varmen låses fra.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p style="margin-top:18px"><b>Manuel tilstand (<code>off</code>)</b></p>
+      <table>
+        <thead><tr><th>Tilstand</th><th>LED-indikation</th><th>Beskrivelse</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>off</code></td>
+            <td><span class="led led-off"></span><span class="led led-off"></span><span class="led led-off"></span> <b>Alle slukket</b></td>
+            <td>Varmen er bevidst slukket. Ingen indikation — LED-gruppen er mørk.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p style="margin-top:18px"><b>Manuel tilstand (<code>on</code> og <code>percent</code>)</b></p>
+      <table>
+        <thead><tr><th>Tilstand</th><th>LED-indikation</th><th>Beskrivelse</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>on</code> / <code>percent</code></td>
+            <td><span class="led led-green"></span><b>Grøn lyser</b> + <span class="led led-yellow"></span><b>Gul blinker</b> <span class="blink-label">(500 ms)</span></td>
+            <td>Manuel effektstyring er aktiv. Grøn = varme kørende; gul blinker = manuel tilstand (ikke PID).</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="note"><b>Alarm og HW Alarm har altid højeste prioritet</b> — de vises uanset om termostatens <code>manualMode</code> er PID eller manuel.</div>
+    </div>
+  </div>
+
+
+  <!-- VARME LED'ER -->
+  <div class="section-title">Varme-LED'er (1–3)</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="hw-badge hw-led">🔥</div>
+      <h3>Én varme-LED pr. termostat</h3>
+    </div>
+    <div class="card-body">
+      <p>Varme-LED'en viser om varmerelæet for den pågældende termostat er aktivt i det aktuelle øjeblik. Da varmestyringen bruger time-proportional PWM (relæet tændes og slukkes i et 5-sekunders vindue), vil LED'en normalt blinke med lav frekvens under PID-regulering.</p>
+      <table>
+        <thead><tr><th>LED</th><th>Tilstand</th></tr></thead>
+        <tbody>
+          <tr><td><span class="led led-orange"></span><b>Lyser</b></td><td>Varmerelæet er aktivt — strøm til varmeelement</td></tr>
+          <tr><td><span class="led led-off"></span><b>Slukket</b></td><td>Varmerelæet er inaktivt</td></tr>
+        </tbody>
+      </table>
+      <div class="note">I PID-tilstand og auto-tilstand blinker LED'en i takt med PWM-vinduet (standard 5 sekunder). Ved 100 % effekt (<code>on</code> eller fuld-varme-overstyring) lyser den konstant. Ved 0 % (<code>off</code> eller over setpunkt i auto-tilstand) er den slukket.</div>
+    </div>
+  </div>
+
+
+  <!-- AUTO TILSTAND -->
+  <div class="section-title">Auto-tilstand — trinvis opvarmning</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="hw-badge hw-btn">🌡</div>
+      <h3>Tre zoner: fuld varme → PID → slukket</h3>
+    </div>
+    <div class="card-body">
+      <p>Auto-tilstanden kombinerer 100 % fuld varme ved lav temperatur med PID-regulering tæt på målet. Den aktiveres via API eller Python-HMI og kan ikke skiftes til via de fysiske knapper alene (setpunktet og grænsen konfigureres via serial).</p>
+      <table>
+        <thead><tr><th>Zone</th><th>Betingelse</th><th>Varme-LED</th><th>Status-LED</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>Fuld varme</b></td>
+            <td>Temperatur &lt; grænse</td>
+            <td><span class="led led-orange"></span>Lyser konstant</td>
+            <td><span class="led led-green"></span>Grøn blinker <span class="blink-label">(Opvarmning)</span></td>
+          </tr>
+          <tr>
+            <td><b>PID-regulering</b></td>
+            <td>Grænse ≤ temperatur ≤ setpunkt</td>
+            <td><span class="led led-orange"></span>Blinker (PWM)</td>
+            <td><span class="led led-green"></span>Grøn lyser <span class="blink-label">(Run)</span> eller <span class="led led-yellow"></span>Gul</td>
+          </tr>
+          <tr>
+            <td><b>Slukket</b></td>
+            <td>Temperatur &gt; setpunkt</td>
+            <td><span class="led led-off"></span>Slukket</td>
+            <td><span class="led led-green"></span>Grøn lyser <span class="blink-label">(Run)</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+
+  <!-- HURTIGGUIDE -->
+  <div class="section-title">Hurtigguide — typiske handlinger</div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-header">
+        <div class="hw-badge hw-btn">📋</div>
+        <h3>Skift hvilken sensor displayet viser</h3>
+      </div>
+      <div class="card-body">
+        <ul class="steps">
+          <li><div class="step-num">1</div><div>Giv sensorknappen et <span class="press press-kort">kort tryk</span></div></li>
+          <li><div class="step-num">2</div><div>Displayet skifter til næste sensor. Sensor-LED opdateres.</div></li>
+          <li><div class="step-num">3</div><div>Gentag for at nå den ønskede sensor (1 → 2 → 3 → 4 → 1).</div></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="hw-badge hw-btn">📋</div>
+        <h3>Aflæs setpunkt for en termostat</h3>
+      </div>
+      <div class="card-body">
+        <ul class="steps">
+          <li><div class="step-num">1</div><div>Skift til sensor 1, 2 eller 3 med et <span class="press press-kort">kort tryk</span>.</div></li>
+          <li><div class="step-num">2</div><div>Hold knappen nede i <span class="press press-lang">≥ 800 ms</span> og slip.</div></li>
+          <li><div class="step-num">3</div><div>Setpunktet vises i 2 sekunder, herefter skifter displayet automatisk tilbage.</div></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="hw-badge hw-btn">📋</div>
+        <h3>Justér setpunkt direkte fra panelet</h3>
+      </div>
+      <div class="card-body">
+        <ul class="steps">
+          <li><div class="step-num">1</div><div>Vælg den ønskede sensor (1–3) med <span class="press press-kort">kort tryk</span>.</div></li>
+          <li><div class="step-num">2</div><div>Hold sensorknappen nede i <span class="press press-lang2">≥ 1800 ms</span> — setpunktet begynder at blinke.</div></li>
+          <li><div class="step-num">3</div><div>Tryk <b>relæknap 1</b> for +1 °C eller <b>relæknap 2</b> for −1 °C pr. tryk.</div></li>
+          <li><div class="step-num">4</div><div>Afslut med et <span class="press press-edit">kort tryk</span> på sensorknappen — setpunktet gemmes.</div></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="hw-badge hw-btn">📋</div>
+        <h3>Aktiver fuld varme på alle termostater</h3>
+      </div>
+      <div class="card-body">
+        <ul class="steps">
+          <li><div class="step-num">1</div><div>Tryk én gang på <b>override-knappen</b>.</div></li>
+          <li><div class="step-num">2</div><div>Den røde override-LED tænder. Alle termostater kører nu 100 % varme.</div></li>
+          <li><div class="step-num">3</div><div>Tryk igen for at slå overstyringen fra. Den tidligere tilstand gendannes automatisk.</div></li>
+        </ul>
+        <div class="warn">Overstyringen tilsidesætter PID og manuelle indstillinger. Slå den fra igen så snart den ønskede temperatur er nået.</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- LED OPSUMMERING -->
+  <div class="section-title">LED-opsummering</div>
+  <div class="card">
+    <div class="card-body" style="padding-top:16px">
+      <table>
+        <thead><tr><th>LED</th><th>Antal</th><th>Indikation</th></tr></thead>
+        <tbody>
+          <tr><td class="col-key">Relæ-LED'er</td><td>4</td><td><span class="led led-green"></span>Lyser = relæ aktivt &nbsp;|&nbsp; <span class="led led-off"></span>Slukket = relæ inaktivt</td></tr>
+          <tr><td class="col-key">Sensor-LED'er</td><td>4</td><td><span class="led led-green"></span>Én lyser (valgt sensor) — de øvrige slukket</td></tr>
+          <tr><td class="col-key">Status Grøn</td><td>3</td><td><span class="led led-green"></span>Lyser = Run &nbsp;|&nbsp; <span class="led led-green"></span><span class="blink-label">Blinker</span> = Opvarmning &nbsp;|&nbsp; <span class="led led-off"></span>Slukket = off-tilstand</td></tr>
+          <tr><td class="col-key">Status Gul</td><td>3</td><td><span class="led led-yellow"></span>Lyser = Advarsel &nbsp;|&nbsp; <span class="led led-yellow"></span><span class="blink-label">Blinker</span> = Manuel on/percent</td></tr>
+          <tr><td class="col-key">Status Rød</td><td>3</td><td><span class="led led-red"></span>Lyser = Alarm &nbsp;|&nbsp; <span class="led led-red"></span><span class="blink-label">Blinker</span> = HW Alarm</td></tr>
+          <tr><td class="col-key">Varme-LED'er</td><td>3</td><td><span class="led led-orange"></span>Lyser = varmerelæ aktivt (PWM-puls ON)</td></tr>
+          <tr><td class="col-key">Override-LED (rød)</td><td>1</td><td><span class="led led-red"></span>Lyser = global fuld-varme-overstyring aktiv</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<footer>Termostat Controller — Betjeningsvejledning · Kun fysisk betjening · Firmware interface.ino</footer>
+</body>
+</html>

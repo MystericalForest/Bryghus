@@ -19,6 +19,7 @@ class ThermostatData:
     manual_mode: str
     manual_percent: float
     heat_percent: float
+    auto_threshold: float
 
     @staticmethod
     def from_dict(d: dict) -> "ThermostatData":
@@ -38,6 +39,7 @@ class ThermostatData:
             manual_mode=str(d.get("manualMode", "pid")),
             manual_percent=float(d.get("manualPercent", 0.0)),
             heat_percent=float(d.get("heatPercent", 0.0)),
+            auto_threshold=float(d.get("autoThreshold", 0.0)),
         )
 
 
