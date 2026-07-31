@@ -541,30 +541,31 @@
       <h3>Tre zoner: fuld varme → PID → slukket</h3>
     </div>
     <div class="card-body">
-      <p>Auto-tilstanden kombinerer 100 % fuld varme ved lav temperatur med PID-regulering tæt på målet. Den aktiveres via API eller Python-HMI og kan ikke skiftes til via de fysiske knapper alene (setpunktet og grænsen konfigureres via serial).</p>
+      <p>Auto-tilstanden kombinerer 100 % fuld varme ved lav temperatur med PID-regulering tæt på målet. <b>Grænsen er et delta i °C under setpunktet</b> — fuld varme kører så længe temperaturen er mere end delta-graden under setpunktet. Når du justerer setpunktet, rykker PID-zonen automatisk med.</p>
       <table>
         <thead><tr><th>Zone</th><th>Betingelse</th><th>Varme-LED</th><th>Status-LED</th></tr></thead>
         <tbody>
           <tr>
             <td><b>Fuld varme</b></td>
-            <td>Temperatur &lt; grænse</td>
+            <td>temp &lt; setpunkt − grænseΔ</td>
             <td><span class="led led-orange"></span>Lyser konstant</td>
             <td><span class="led led-green"></span>Grøn blinker <span class="blink-label">(Opvarmning)</span></td>
           </tr>
           <tr>
             <td><b>PID-regulering</b></td>
-            <td>Grænse ≤ temperatur ≤ setpunkt</td>
+            <td>setpunkt − grænseΔ ≤ temp ≤ setpunkt</td>
             <td><span class="led led-orange"></span>Blinker (PWM)</td>
             <td><span class="led led-green"></span>Grøn lyser <span class="blink-label">(Run)</span> eller <span class="led led-yellow"></span>Gul</td>
           </tr>
           <tr>
             <td><b>Slukket</b></td>
-            <td>Temperatur &gt; setpunkt</td>
+            <td>temp &gt; setpunkt</td>
             <td><span class="led led-off"></span>Slukket</td>
             <td><span class="led led-green"></span>Grøn lyser <span class="blink-label">(Run)</span></td>
           </tr>
         </tbody>
       </table>
+      <div class="note"><b>Eksempel:</b> Setpunkt = 75 °C, grænse = 15 °C → fuld varme under 60 °C, PID fra 60– 75 °C. Ændres setpunktet til 80 °C, rykker zonen automatisk til 65–80 °C.</div>
     </div>
   </div>
 

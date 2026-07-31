@@ -300,12 +300,12 @@ class ThermostatTab(QWidget):
         form.setSpacing(8)
 
         self.threshold_spin = QDoubleSpinBox()
-        self.threshold_spin.setRange(-30.0, 149.5)
+        self.threshold_spin.setRange(0.0, 150.0)
         self.threshold_spin.setSingleStep(0.5)
         self.threshold_spin.setDecimals(1)
         self.threshold_spin.setSuffix("  °C")
 
-        note = QLabel("Setpunkt hentes fra PID-gruppe.")
+        note = QLabel("Fuld varme når temp\xa0<\xa0(setpunkt\xa0−\xa0grænse).\nSetpunkt hentes fra PID-gruppe.")
         note.setStyleSheet("color: #9e9e9e; font-size: 11px;")
         note.setWordWrap(True)
 
@@ -313,7 +313,7 @@ class ThermostatTab(QWidget):
         self._auto_btn.setStyleSheet("background-color: #0d47a1; color: white;")
         self._auto_btn.clicked.connect(self._on_send_auto)
 
-        form.addRow("Grænse (100%):", self.threshold_spin)
+        form.addRow("Grænse Δ under sp.:", self.threshold_spin)
         form.addRow(note)
         form.addRow("", self._auto_btn)
         return group

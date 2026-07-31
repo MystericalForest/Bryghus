@@ -134,8 +134,8 @@ String thermostatState[NUM_THERMOSTATS] = {"Opvarmning", "Opvarmning", "Opvarmni
 String manualMode[NUM_THERMOSTATS]   = {"pid", "pid", "pid"};
 double manualPercent[NUM_THERMOSTATS] = {0.0, 0.0, 0.0};
 
-// --- Auto-regulering: grænsetemperatur ---
-// Under denne grænse: 100% varme. Mellem grænse og setpunkt: PID. Over setpunkt: slukket.
+// --- Auto-regulering: grænse-delta ---
+// Fuld varme når temp < (setpunkt - delta). PID når delta <= afstand <= 0. Slukket over setpunkt.
 double autoThreshold[NUM_THERMOSTATS] = AUTO_THRESHOLDS;
 
 // Grænser er delta-værdier i °C relativt til setpunkt (kun termostat 1-3)
@@ -763,7 +763,7 @@ void controlHeating() {
       continue;
 
     } else if (manualMode[i] == "auto") {
-      // Auto: Under grænse → 100%, mellem grænse og setpunkt → PID, over setpunkt → slukket
+      // Auto: temp < (setpunkt - delta) → 100%, imellem → PID, over setpunkt → slukket
       if (thermostatState[i] == "HW Alarm" || isnan(temps[i])) {
         digitalWrite(heatRelayPins[i], LOW);
         heatRelayState[i] = false;
@@ -771,8 +771,8 @@ void controlHeating() {
         // Over setpunkt: varme slukket
         digitalWrite(heatRelayPins[i], LOW);
         heatRelayState[i] = false;
-      } else if ((double)temps[i] < autoThreshold[i]) {
-        // Under grænse: fuld varme (100%)
+      } else if ((double)temps[i] < (setpoint[i] - autoThreshold[i])) {
+        // Under grænse (setpunkt - delta): fuld varme (100%)
         digitalWrite(heatRelayPins[i], HIGH);
         heatRelayState[i] = true;
       } else {
@@ -990,7 +990,7 @@ void sendStatus() {
     } else if (manualMode[i] == "auto" && thermostatState[i] != "HW Alarm" && !isnan(temps[i])) {
       if ((double)temps[i] > setpoint[i]) {
         heatPct = 0.0;
-      } else if ((double)temps[i] < autoThreshold[i]) {
+      } else if ((double)temps[i] < (setpoint[i] - autoThreshold[i])) {
         heatPct = 100.0;
       } else {
         heatPct = (float)(pidOutput[i] / (double)windowSize[i] * 100.0);
@@ -1324,8 +1324,8 @@ void handleJson(String json) {
 
   // --- setAuto: { "command": "setAuto", "thermostat": 1-3,
   //               "threshold": float, "setpoint": float (valgfri) } ---
-  // Sætter grænsetemperatur og aktiverer "auto"-tilstand.
-  // Under grænsen: 100% varme. Mellem grænse og setpunkt: PID. Over setpunkt: slukket.
+  // threshold er et delta i °C under setpunktet: fuld varme når temp < (setpunkt - delta).
+  // Mellem grænsen og setpunkt: PID. Over setpunkt: slukket.
   if (cmd == "setAuto") {
     if (!doc.containsKey("thermostat") || !doc.containsKey("threshold")) {
       sendError("Missing thermostat/threshold"); return;
@@ -1334,11 +1334,11 @@ void handleJson(String json) {
     if (t < 0 || t >= NUM_THERMOSTATS) { sendError("Invalid thermostat"); return; }
 
     double threshold = doc["threshold"].as<double>();
+    if (threshold < 0.0) { sendError("threshold must be >= 0"); return; }
     autoThreshold[t] = threshold;
 
     if (doc.containsKey("setpoint")) {
       setpoint[t] = doc["setpoint"].as<double>();
-      if (setpoint[t] <= autoThreshold[t]) { sendError("setpoint must be greater than threshold"); return; }
     }
 
     // Initialisér PID hvis vi skifter fra en ikke-PID tilstand

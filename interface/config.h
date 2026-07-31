@@ -133,13 +133,14 @@
 // =============================================================================
 // AUTO-REGULERING — GRÆNSETEMPERATUR
 // Under denne temperatur kører varmeelementet på 100% i "auto"-tilstand.
+// Grænsen er et delta i °C UNDER setpunktet: fuld varme når temp < (setpunkt - delta).
 // Mellem grænsen og setpunkt reguleres af PID.
 // Over setpunkt er varmen slukket.
 // Kan ændres runtime via setAuto-kommandoen.
 // Index:  0     1     2   (termostat 1, 2, 3)
 // =============================================================================
 
-#define AUTO_THRESHOLDS  {0.0, 0.0, 0.0}  // Startgrænser i °C
+#define AUTO_THRESHOLDS  {5.0, 5.0, 5.0}  // Delta i °C under setpunkt — under (setpunkt - delta) kører varmen 100%
 
 
 // =============================================================================

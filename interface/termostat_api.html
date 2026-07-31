@@ -254,7 +254,7 @@
           <tr><td class="param-name">manualMode</td><td><span class="type-badge">string</span></td><td>Aktiv tilstand: <code>pid</code>, <code>off</code>, <code>on</code>, <code>percent</code> eller <code>auto</code>.</td></tr>
           <tr><td class="param-name">manualPercent</td><td><span class="type-badge">float</span></td><td>Konfigureret procent ved <code>manualMode: "percent"</code>.</td></tr>
           <tr><td class="param-name">heatPercent</td><td><span class="type-badge">float</span></td><td>Aktuel varmeeffekt i % (0–100). PID-output ved <code>pid</code>-tilstand, ellers afledt af manuel tilstand. I <code>auto</code>: 100% under grænsen, PID imellem, 0% over setpunkt.</td></tr>
-          <tr><td class="param-name">autoThreshold</td><td><span class="type-badge">float</span></td><td>Grænsetemperatur i °C for <code>auto</code>-tilstand. Under denne grænse kører varmeelementet på 100%.</td></tr>
+          <tr><td class="param-name">autoThreshold</td><td><span class="type-badge">float</span></td><td>Grænse-delta i °C for <code>auto</code>-tilstand. Fuld varme når temp &lt; (setpunkt − delta). PID når delta-zonen nås. Slukket over setpunkt.</td></tr>
         </tbody>
       </table>
 
@@ -478,13 +478,13 @@
       <h3>Auto-regulering — trinvis opvarmning med PID-overdragelse</h3>
     </div>
     <div class="card-body">
-      <p>Aktiverer <code>auto</code>-tilstand og konfigurerer grænsetemperaturen. I denne tilstand styres varmeelementet i tre zoner:</p>
+      <p>Aktiverer <code>auto</code>-tilstand og konfigurerer grænse-deltaet. <code>threshold</code> er et antal grader <b>under setpunktet</b> — fuld varme kører så længe temperaturen er mere end <code>threshold</code> °C under målet. Når du ændrer setpunktet, følger PID-zonen automatisk med uden at <code>threshold</code> skal genkonfigureres.</p>
       <table style="margin-bottom:18px">
         <thead><tr><th>Zone</th><th>Betingelse</th><th>Varmeeffekt</th></tr></thead>
         <tbody>
-          <tr><td><b>Fuld varme</b></td><td>Temperatur &lt; <code>threshold</code></td><td>100 %</td></tr>
-          <tr><td><b>PID-regulering</b></td><td><code>threshold</code> ≤ temperatur ≤ <code>setpoint</code></td><td>PID-output (0–100 %)</td></tr>
-          <tr><td><b>Slukket</b></td><td>Temperatur &gt; <code>setpoint</code></td><td>0 %</td></tr>
+          <tr><td><b>Fuld varme</b></td><td>temp &lt; setpunkt − <code>threshold</code></td><td>100 %</td></tr>
+          <tr><td><b>PID-regulering</b></td><td>setpunkt − <code>threshold</code> ≤ temp ≤ setpunkt</td><td>PID-output (0–100 %)</td></tr>
+          <tr><td><b>Slukket</b></td><td>temp &gt; setpunkt</td><td>0 %</td></tr>
         </tbody>
       </table>
       <table>
@@ -497,25 +497,25 @@
       </table>
       <div class="two-col">
         <div>
-          <div class="col-label">Eksempel — sæt grænse og setpunkt</div>
+          <div class="col-label">Eksempel — sæt delta og setpunkt</div>
           <div class="code-block">{
   <span class="key">"command"</span>: <span class="str">"setAuto"</span>,
   <span class="key">"thermostat"</span>: <span class="num">1</span>,
-  <span class="key">"threshold"</span>: <span class="num">60.0</span>,
+  <span class="key">"threshold"</span>: <span class="num">15.0</span>,
   <span class="key">"setpoint"</span>: <span class="num">75.0</span>
-}</div>
+}<br><span class="comment">// Fuld varme under 60 °C, PID 60–75 °C</span></div>
         </div>
         <div>
-          <div class="col-label">Eksempel — kun opdater grænse</div>
+          <div class="col-label">Eksempel — kun opdater delta</div>
           <div class="code-block">{
   <span class="key">"command"</span>: <span class="str">"setAuto"</span>,
   <span class="key">"thermostat"</span>: <span class="num">1</span>,
-  <span class="key">"threshold"</span>: <span class="num">55.0</span>
-}</div>
+  <span class="key">"threshold"</span>: <span class="num">10.0</span>
+}<br><span class="comment">// setpunkt uændret</span></div>
         </div>
       </div>
       <div class="response-note">Kommandoen aktiverer automatisk <code>auto</code>-tilstand og nulstiller PID-regulatoren hvis der skiftes fra en ikke-PID-tilstand. PID-parametre (<code>kp</code>, <code>ki</code>, <code>kd</code>) konfigureres separat via <b>setPID</b>.</div>
-      <div class="error-note">Fejl hvis <code>thermostat</code>/<code>threshold</code> mangler, termostatnummeret er ugyldigt, eller <code>setpoint</code> er angivet men ikke er større end <code>threshold</code>.</div>
+      <div class="error-note">Fejl hvis <code>thermostat</code>/<code>threshold</code> mangler, termostatnummeret er ugyldigt, eller <code>threshold</code> er negativ.</div>
     </div>
   </div>
 
@@ -621,7 +621,7 @@
   <span class="key">"error"</span>: <span class="str">"Invalid relay"</span>
 }</div>
     <br>
-    <b>Mulige fejlbeskeder:</b> <code>Invalid JSON</code> · <code>Missing relay/state</code> · <code>Invalid relay</code> · <code>Missing sensor</code> · <code>Invalid sensor</code> · <code>Missing thermostat/setpoint</code> · <code>Invalid thermostat</code> · <code>Missing thermostat</code> · <code>Missing thermostat/state</code> · <code>Invalid state</code> · <code>Invalid kp</code> · <code>Invalid ki</code> · <code>Invalid kd</code> · <code>Invalid percent</code> · <code>Missing percent</code> · <code>Missing thermostat/mode</code> · <code>Invalid mode</code> · <code>Missing active</code> · <code>Missing thermostat/threshold</code> · <code>setpoint must be greater than threshold</code> · <code>Unknown command</code>
+    <b>Mulige fejlbeskeder:</b> <code>Invalid JSON</code> · <code>Missing relay/state</code> · <code>Invalid relay</code> · <code>Missing sensor</code> · <code>Invalid sensor</code> · <code>Missing thermostat/setpoint</code> · <code>Invalid thermostat</code> · <code>Missing thermostat</code> · <code>Missing thermostat/state</code> · <code>Invalid state</code> · <code>Invalid kp</code> · <code>Invalid ki</code> · <code>Invalid kd</code> · <code>Invalid percent</code> · <code>Missing percent</code> · <code>Missing thermostat/mode</code> · <code>Invalid mode</code> · <code>Missing active</code> · <code>Missing thermostat/threshold</code> · <code>threshold must be &gt;= 0</code> · <code>Unknown command</code>
   </div>
 
 </main>

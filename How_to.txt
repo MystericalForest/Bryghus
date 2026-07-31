@@ -1,0 +1,16 @@
+Clone:
+git clone https://github.com/MystericalForest/Bryghus.git
+
+Commit:
+git add .
+git commit -m "First commit"
+git push origin main
+
+Update local folder:
+git pull
+
+Create virtual environment:
+py -m venv tutorial-env
+
+Activate environment:
+tutorial-env\Scripts\activate.bat
