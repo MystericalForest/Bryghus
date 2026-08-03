@@ -153,7 +153,9 @@ bool lastRead[NUM_BUTTONS];
 bool buttonState[NUM_BUTTONS];
 
 // --- Serial buffer ---
-String serialBuffer = "";
+// Bruger et statisk char-array for at undgå heap-fragmentering fra String-objekter.
+char serialBuffer[SERIAL_BUFFER_MAX + 1];
+int  serialBufferLen = 0;
 bool serialOverflow = false;  // Sættes ved buffer-overflow, ryddes ved næste newline
 
 // --- Blink-tilstand ---
@@ -867,13 +869,14 @@ void readSerial() {
     char c = Serial.read();
     if (c == '\n') {
       if (!serialOverflow) {
-        handleJson(serialBuffer);
+        serialBuffer[serialBufferLen] = '\0';
+        handleJson(serialBuffer);  // char* → ArduinoJson zero-copy (destructive OK, buffer reset nedenfor)
       }
-      serialBuffer = "";
+      serialBufferLen = 0;
       serialOverflow = false;
-    } else {
-      if (serialBuffer.length() < SERIAL_BUFFER_MAX) {
-        serialBuffer += c;
+    } else if (c != '\r') {  // ignorer CR fra terminaler der sender CRLF
+      if (serialBufferLen < SERIAL_BUFFER_MAX) {
+        serialBuffer[serialBufferLen++] = c;
       } else {
         // Buffer fuld — sæt flag og ignorer resten af denne kommando.
         // Bufferen ryddes først ved newline, så næste kommando modtages korrekt.
@@ -1181,30 +1184,30 @@ void runLysshow() {
 
 
 // Parse og behandl en JSON-kommando modtaget på serial.
-void handleJson(String json) {
+void handleJson(char* json) {
   StaticJsonDocument<512> doc;
   DeserializationError error = deserializeJson(doc, json);
   if (error) { sendError("Invalid JSON"); return; }
 
-  String cmd = doc["command"].as<String>();
+  const char* cmd = doc["command"] | "";
 
   // --- lysshow: { "command": "lysshow" } ---
   // Kører en sekventiel test af alle LED'er og TM1637-displayet.
   // Relæer og varmerelæer berøres ikke — kun LED-udgange styres.
-  if (cmd == "lysshow") {
+  if (strcmp(cmd, "lysshow") == 0) {
     runLysshow();
     sendStatus();
     return;
   }
 
   // --- status ---
-  if (cmd == "status") {
+  if (strcmp(cmd, "status") == 0) {
     sendStatus();
     return;
   }
 
   // --- setRelay: { "command": "setRelay", "relay": 1-4, "state": true/false } ---
-  if (cmd == "setRelay") {
+  if (strcmp(cmd, "setRelay") == 0) {
     if (!doc.containsKey("relay") || !doc.containsKey("state")) { sendError("Missing relay/state"); return; }
     int r   = doc["relay"].as<int>();
     bool st = doc["state"].as<bool>();
@@ -1215,7 +1218,7 @@ void handleJson(String json) {
   }
 
   // --- selectSensor: { "command": "selectSensor", "sensor": 1-4 } ---
-  if (cmd == "selectSensor") {
+  if (strcmp(cmd, "selectSensor") == 0) {
     if (!doc.containsKey("sensor")) { sendError("Missing sensor"); return; }
     int s = doc["sensor"].as<int>();
     if (s < 1 || s > NUM_TEMPS) { sendError("Invalid sensor"); return; }
@@ -1227,7 +1230,7 @@ void handleJson(String json) {
 
   // --- setPID: { "command": "setPID", "thermostat": 1-3, "setpoint": float,
   //              "kp": float, "ki": float, "kd": float, "windowSize": ulong } ---
-  if (cmd == "setPID") {
+  if (strcmp(cmd, "setPID") == 0) {
     if (!doc.containsKey("thermostat") || !doc.containsKey("setpoint")) { sendError("Missing thermostat/setpoint"); return; }
     int t = doc["thermostat"].as<int>() - 1;
     if (t < 0 || t >= NUM_THERMOSTATS) { sendError("Invalid thermostat"); return; }
@@ -1258,7 +1261,7 @@ void handleJson(String json) {
 
   // --- setLimits: { "command": "setLimits", "thermostat": 1-3,
   //                 "alarm": float, "warning": float } ---
-  if (cmd == "setLimits") {
+  if (strcmp(cmd, "setLimits") == 0) {
     if (!doc.containsKey("thermostat")) { sendError("Missing thermostat"); return; }
     int t = doc["thermostat"].as<int>() - 1;
     if (t < 0 || t >= NUM_THERMOSTATS) { sendError("Invalid thermostat"); return; }
@@ -1271,15 +1274,15 @@ void handleJson(String json) {
   // --- setState: { "command": "setState", "thermostat": 1-3,
   //                "state": "HW Alarm"|"clear" } ---
   // Bruges til at sætte og nulstille "HW Alarm" manuelt via API.
-  if (cmd == "setState") {
+  if (strcmp(cmd, "setState") == 0) {
     if (!doc.containsKey("thermostat") || !doc.containsKey("state")) { sendError("Missing thermostat/state"); return; }
     int t = doc["thermostat"].as<int>() - 1;
     if (t < 0 || t >= NUM_THERMOSTATS) { sendError("Invalid thermostat"); return; }
-    String st = doc["state"].as<String>();
-    if (st != "HW Alarm" && st != "clear") {
+    const char* st = doc["state"] | "";
+    if (strcmp(st, "HW Alarm") != 0 && strcmp(st, "clear") != 0) {
       sendError("Invalid state"); return;
     }
-    if (st == "clear") {
+    if (strcmp(st, "clear") == 0) {
       thermostatState[t] = "Run"; // Overskrives af updateThermostatState() ved næste sekund
     } else {
       thermostatState[t] = "HW Alarm";
@@ -1290,17 +1293,17 @@ void handleJson(String json) {
 
   // --- setManual: { "command": "setManual", "thermostat": 1-3,
   //                 "mode": "pid"|"off"|"on"|"percent", "percent": 0-100 } ---
-  if (cmd == "setManual") {
+  if (strcmp(cmd, "setManual") == 0) {
     if (!doc.containsKey("thermostat") || !doc.containsKey("mode")) { sendError("Missing thermostat/mode"); return; }
     int t = doc["thermostat"].as<int>() - 1;
     if (t < 0 || t >= NUM_THERMOSTATS) { sendError("Invalid thermostat"); return; }
 
-    String mode = doc["mode"].as<String>();
-    if (mode != "pid" && mode != "off" && mode != "on" && mode != "percent" && mode != "auto") {
+    const char* mode = doc["mode"] | "";
+    if (strcmp(mode,"pid")!=0 && strcmp(mode,"off")!=0 && strcmp(mode,"on")!=0 && strcmp(mode,"percent")!=0 && strcmp(mode,"auto")!=0) {
       sendError("Invalid mode"); return;
     }
 
-    if (mode == "percent") {
+    if (strcmp(mode, "percent") == 0) {
       if (!doc.containsKey("percent")) { sendError("Missing percent"); return; }
       double pct = doc["percent"].as<double>();
       if (pct < 0.0 || pct > 100.0) { sendError("Invalid percent"); return; }
@@ -1308,7 +1311,7 @@ void handleJson(String json) {
     }
 
     // Initialisér PID ved skift til pid/auto fra en ikke-PID tilstand
-    if ((mode == "pid" || mode == "auto") && (manualMode[t] != "pid" && manualMode[t] != "auto")) {
+    if ((strcmp(mode,"pid")==0 || strcmp(mode,"auto")==0) && (manualMode[t] != "pid" && manualMode[t] != "auto")) {
       if (!isnan(temps[t])) {
         pidInput[t] = temps[t];
       }
@@ -1317,7 +1320,7 @@ void handleJson(String json) {
       pids[t]->SetMode(AUTOMATIC);
     }
 
-    manualMode[t] = mode;
+    manualMode[t] = mode;  // String::operator=(const char*) kopierer inden handleJson returnerer
     sendStatus();
     return;
   }
@@ -1326,7 +1329,7 @@ void handleJson(String json) {
   //               "threshold": float, "setpoint": float (valgfri) } ---
   // threshold er et delta i °C under setpunktet: fuld varme når temp < (setpunkt - delta).
   // Mellem grænsen og setpunkt: PID. Over setpunkt: slukket.
-  if (cmd == "setAuto") {
+  if (strcmp(cmd, "setAuto") == 0) {
     if (!doc.containsKey("thermostat") || !doc.containsKey("threshold")) {
       sendError("Missing thermostat/threshold"); return;
     }
@@ -1358,7 +1361,7 @@ void handleJson(String json) {
   // --- setOverride: { "command": "setOverride", "active": true/false } ---
   // Aktiverer eller deaktiverer manuel overstyring (fuld varme på alle termostater).
   // Ved aktivering gemmes nuværende manualMode/manualPercent og gendannes ved deaktivering.
-  if (cmd == "setOverride") {
+  if (strcmp(cmd, "setOverride") == 0) {
     if (!doc.containsKey("active")) { sendError("Missing active"); return; }
     bool act = doc["active"].as<bool>();
     if (act) {

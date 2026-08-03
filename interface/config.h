@@ -124,10 +124,10 @@
 // Index:  0     1     2   (termostat 1, 2, 3)
 // =============================================================================
 
-#define PID_SETPOINTS   {25.0, 25.0, 25.0}  // Startsetpunkter i °C
-#define PID_KP          {2.0,  2.0,  2.0}   // Proportional-koefficienter
-#define PID_KI          {5.0,  5.0,  5.0}   // Integral-koefficienter
-#define PID_KD          {1.0,  1.0,  1.0}   // Differentiations-koefficienter
+#define PID_SETPOINTS   {25.0,  25.0,   25.0}  // Startsetpunkter i °C
+#define PID_KP          {5.0,    5.0,    5.0}   // Proportional-koefficienter
+#define PID_KI          {0.002,  0.002,  0.002}   // Integral-koefficienter
+#define PID_KD          {0.0,    0.0,    0.0}   // Differentiations-koefficienter
 
 
 // =============================================================================
@@ -140,7 +140,7 @@
 // Index:  0     1     2   (termostat 1, 2, 3)
 // =============================================================================
 
-#define AUTO_THRESHOLDS  {5.0, 5.0, 5.0}  // Delta i °C under setpunkt — under (setpunkt - delta) kører varmen 100%
+#define AUTO_THRESHOLDS  {10.0, 10.0, 10.0}  // Delta i °C under setpunkt — under (setpunkt - delta) kører varmen 100%
 
 
 // =============================================================================

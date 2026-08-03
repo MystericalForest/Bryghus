@@ -580,10 +580,6 @@ class ThermostatTab(QWidget):
         # CSV logging at fixed sampling interval from incoming status updates.
         self._write_log_row(data, time.monotonic())
 
-    def closeEvent(self, event):
-        self._stop_logging()
-        super().closeEvent(event)
-
         # --- Limit lines ---
         sp = data.setpoint
         self._sp_line.setValue(sp)
@@ -594,6 +590,10 @@ class ThermostatTab(QWidget):
         # --- Sync control widgets with Arduino's confirmed values.
         # Skip any widget that currently has keyboard focus (user is editing it). ---
         self._sync_controls(data)
+
+    def closeEvent(self, event):
+        self._stop_logging()
+        super().closeEvent(event)
 
     def _sync_spin(self, spin, value: float):
         """Update a spinbox from Arduino data unless the user is currently editing it."""
