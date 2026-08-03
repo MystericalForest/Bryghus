@@ -1187,13 +1187,7 @@ void runLysshow() {
 void handleJson(const char* json) {
   StaticJsonDocument<512> doc;
   DeserializationError error = deserializeJson(doc, json);
-  if (error) {
-    // Echo modtaget indhold til konsol — Python logger det som [SKIP stale]
-    Serial.print(F("[ERR-RX] "));
-    Serial.println(json);
-    sendError("Invalid JSON");
-    return;
-  }
+  if (error) { sendError("Invalid JSON"); return; }
 
   // Kommando-opslagstabel: brug ArduinoJson == direkte (undgår
   // at udtrække const char* som kan være NULL i visse ArduinoJson-versioner).
