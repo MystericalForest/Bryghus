@@ -1233,14 +1233,17 @@ void handleJson(const char* json) {
     return;
   }
 
-  // --- setPID: { "command": "setPID", "thermostat": 1-3, "setpoint": float,
+  // --- setPID: { "command": "setPID", "thermostat": 1-3, "setpoint": float (valgfri),
   //              "kp": float, "ki": float, "kd": float, "windowSize": ulong } ---
+  // Alle felter undtagen "thermostat" er valgfrie — uangivne værdier forbliver uændrede.
   if (doc["command"] == "setPID") {
-    if (!doc.containsKey("thermostat") || !doc.containsKey("setpoint")) { sendError("Missing thermostat/setpoint"); return; }
+    if (!doc.containsKey("thermostat")) { sendError("Missing thermostat"); return; }
     int t = doc["thermostat"].as<int>() - 1;
     if (t < 0 || t >= NUM_THERMOSTATS) { sendError("Invalid thermostat"); return; }
 
-    setpoint[t] = doc["setpoint"].as<double>();
+    if (doc.containsKey("setpoint")) {
+      setpoint[t] = doc["setpoint"].as<double>();
+    }
 
     if (doc.containsKey("kp")) {
       if (doc["kp"].as<double>() < 0) { sendError("Invalid kp"); return; }

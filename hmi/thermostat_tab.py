@@ -356,32 +356,27 @@ class ThermostatTab(QWidget):
         })
 
     def _on_send_pid(self):
-        # The Arduino sketch allocates StaticJsonDocument<512> + StaticJsonDocument<2048>
-        # on the stack inside handleJson() → sendStatus().  A large String parameter
-        # (~97 bytes) can cause a heap/stack collision on the Arduino Mega, making the
-        # Arduino crash silently (no response).
-        #
-        # Fix: split into SHORT sub-commands (≤55 chars each).  Each sub-command must
-        # include the required "setpoint" field.  All are queued and processed
-        # sequentially by the serial worker.
+        # Sænd setpunkt som selvstændig, kort kommando (cmd1).
+        # Efterfølgende kommandoer sender kun én PID-parameter ad gangen
+        # og IKKE setpoint igen — dermed holdes alle kommandoer under
+        # Arduino'ens hardware UART RX-buffer-grænse på 64 bytes.
         t = self._index
         sp = self._n(self.sp_spin.value())
 
-        # 1. Setpoint only — required field, ~47 chars
+        # 1. Setpoint
         self.command_requested.emit({"command": "setPID", "thermostat": t, "setpoint": sp})
 
-        # 2–4. One optional PID parameter per command, ~53 chars each
+        # 2–4. Én PID-parameter pr. kommando (uden setpoint)
         self.command_requested.emit({"command": "setPID", "thermostat": t,
-                                     "setpoint": sp, "kp": self._n(self.kp_spin.value())})
+                                     "kp": self._n(self.kp_spin.value())})
         self.command_requested.emit({"command": "setPID", "thermostat": t,
-                                     "setpoint": sp, "ki": self._n(self.ki_spin.value())})
+                                     "ki": self._n(self.ki_spin.value())})
         self.command_requested.emit({"command": "setPID", "thermostat": t,
-                                     "setpoint": sp, "kd": self._n(self.kd_spin.value())})
+                                     "kd": self._n(self.kd_spin.value())})
 
-        # 5. windowSize — slightly longer (~65 chars) but still much shorter than the
-        #    combined command; sent last so setpoint is already committed.
+        # 5. windowSize (uden setpoint)
         self.command_requested.emit({"command": "setPID", "thermostat": t,
-                                     "setpoint": sp, "windowSize": self.window_spin.value()})
+                                     "windowSize": self.window_spin.value()})
 
         self._flash_ok(self._pid_btn)
 
@@ -395,13 +390,17 @@ class ThermostatTab(QWidget):
         self._flash_ok(self._limits_btn)
 
     def _on_send_auto(self):
+        # setAuto med både threshold OG setpoint overstiger 64 bytes (+\n),
+        # som er Arduino'ens hardware UART RX-buffer-grænse.
+        # Løsning: send setpunktet først via setPID (kort kommando),
+        # derefter setAuto med kun threshold (også kort).
         t = self._index
-        self.command_requested.emit({
-            "command": "setAuto",
-            "thermostat": t,
-            "threshold": self._n(self.threshold_spin.value()),
-            "setpoint":  self._n(self.sp_spin.value()),
-        })
+        sp = self._n(self.sp_spin.value())
+        threshold = self._n(self.threshold_spin.value())
+
+        self.command_requested.emit({"command": "setPID", "thermostat": t, "setpoint": sp})
+        self.command_requested.emit({"command": "setAuto", "thermostat": t,
+                                     "threshold": threshold})
         self._flash_ok(self._auto_btn)
 
     def _on_send_manual(self):
