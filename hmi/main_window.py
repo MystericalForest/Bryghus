@@ -10,15 +10,14 @@ from hmi.thermostat_tab import ThermostatTab
 from models import SystemStatus
 from serial_worker import SerialWorker, list_serial_ports
 
-_THERMOSTAT_NAMES = ["Sparge-vand", "Kogekar", "Mæskegryde"]
+_THERMOSTAT_NAMES = ["Spargevand", "Mæskegryde", "Kogekar"]
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Bryghus Termostat HMI")
-        self.setMinimumSize(1100, 700)
-        self.resize(1280, 780)
+        self._apply_window_geometry()
 
         self._worker = SerialWorker(self)
         self._worker.data_received.connect(self._on_data)
@@ -26,6 +25,22 @@ class MainWindow(QMainWindow):
         self._worker.error_occurred.connect(self._on_error)
 
         self._setup_ui()
+
+    def _apply_window_geometry(self):
+        screen = QApplication.primaryScreen()
+        if screen is None:
+            self.setMinimumSize(900, 620)
+            self.resize(1280, 780)
+            return
+
+        available = screen.availableGeometry()
+        min_width = max(820, int(available.width() * 0.60))
+        min_height = max(560, int(available.height() * 0.60))
+        width = max(min_width, int(available.width() * 0.82))
+        height = max(min_height, int(available.height() * 0.82))
+
+        self.setMinimumSize(min_width, min_height)
+        self.resize(width, height)
 
     # ------------------------------------------------------------------
     # UI construction
@@ -52,7 +67,7 @@ class MainWindow(QMainWindow):
 
         self._overview_tab = OverviewTab(_THERMOSTAT_NAMES)
         self._overview_tab.relay_toggled.connect(self._on_relay_toggled)
-        self._overview_tab.override_toggled.connect(self._on_override_toggled)
+        self._overview_tab.setpoint_requested.connect(self._on_setpoint_requested)
 
         self._thermostat_tabs: list[ThermostatTab] = []
         for i, name in enumerate(_THERMOSTAT_NAMES):
@@ -187,10 +202,16 @@ class MainWindow(QMainWindow):
             "state": state,
         })
 
-    def _on_override_toggled(self, active: bool):
+    @staticmethod
+    def _n(v: float) -> "int | float":
+        iv = int(v)
+        return iv if v == iv else v
+
+    def _on_setpoint_requested(self, thermostat: int, setpoint: float):
         self._worker.send_command({
-            "command": "setOverride",
-            "active": active,
+            "command": "setPID",
+            "thermostat": thermostat,
+            "setpoint": self._n(setpoint),
         })
 
     # ------------------------------------------------------------------

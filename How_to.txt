@@ -1,16 +1,30 @@
-Clone:
+Clone repository:
 git clone https://github.com/MystericalForest/Bryghus.git
+cd Bryghus
 
-Commit:
+Create virtual environment:
+py -m venv .venv
+
+Activate environment (PowerShell):
+.\.venv\Scripts\Activate.ps1
+
+Activate environment (cmd):
+.venv\Scripts\activate.bat
+
+Install dependencies:
+pip install -r requirements.txt
+
+Run HMI:
+python main.py
+
+Note:
+Ctrl+C (SIGINT) is intentionally ignored in the app.
+Close the application from the window close button.
+
+Typical git workflow:
 git add .
-git commit -m "First commit"
+git commit -m "Describe your change"
 git push origin main
 
 Update local folder:
 git pull
-
-Create virtual environment:
-py -m venv tutorial-env
-
-Activate environment:
-tutorial-env\Scripts\activate.bat

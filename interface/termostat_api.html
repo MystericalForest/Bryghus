@@ -335,15 +335,15 @@
       <h3>Konfigurer PID-termostat</h3>
     </div>
     <div class="card-body">
-      <p>Sætter setpunkt og PID-parametre for en termostat. Kun <code>thermostat</code> og <code>setpoint</code> er påkrævet — øvrige parametre opdateres kun hvis de er med.</p>
+      <p>Opdaterer setpunkt og/eller PID-parametre for en termostat. Kun <code>thermostat</code> er påkrævet — øvrige felter opdateres kun hvis de er med.</p>
       <table>
         <thead><tr><th>Parameter</th><th>Type</th><th>Krav</th><th>Beskrivelse</th></tr></thead>
         <tbody>
           <tr><td class="param-name">thermostat</td><td><span class="type-badge">int</span></td><td class="required">Påkrævet</td><td>Termostatnummer (1–3)</td></tr>
-          <tr><td class="param-name">setpoint</td><td><span class="type-badge">float</span></td><td class="required">Påkrævet</td><td>Ønsket temperatur i °C</td></tr>
-          <tr><td class="param-name">kp</td><td><span class="type-badge">float</span></td><td class="optional">Valgfri</td><td>Proportional-koefficient (standard: 2.0)</td></tr>
-          <tr><td class="param-name">ki</td><td><span class="type-badge">float</span></td><td class="optional">Valgfri</td><td>Integral-koefficient (standard: 5.0)</td></tr>
-          <tr><td class="param-name">kd</td><td><span class="type-badge">float</span></td><td class="optional">Valgfri</td><td>Differentiations-koefficient (standard: 1.0)</td></tr>
+          <tr><td class="param-name">setpoint</td><td><span class="type-badge">float</span></td><td class="optional">Valgfri</td><td>Ønsket temperatur i °C</td></tr>
+          <tr><td class="param-name">kp</td><td><span class="type-badge">float</span></td><td class="optional">Valgfri</td><td>Proportional-koefficient (standard: 5.0)</td></tr>
+          <tr><td class="param-name">ki</td><td><span class="type-badge">float</span></td><td class="optional">Valgfri</td><td>Integral-koefficient (standard: 0.002)</td></tr>
+          <tr><td class="param-name">kd</td><td><span class="type-badge">float</span></td><td class="optional">Valgfri</td><td>Differentiations-koefficient (standard: 0.0)</td></tr>
           <tr><td class="param-name">windowSize</td><td><span class="type-badge">ulong</span></td><td class="optional">Valgfri</td><td>PWM-vinduet i ms (standard: 5000)</td></tr>
         </tbody>
       </table>
@@ -357,7 +357,7 @@
   <span class="key">"kd"</span>: <span class="num">1.5</span>,
   <span class="key">"windowSize"</span>: <span class="num">10000</span>
 }</div>
-      <div class="error-note">Fejl hvis <code>thermostat</code> ikke er i intervallet 1–3, eller hvis <code>thermostat</code>/<code>setpoint</code> mangler.</div>
+      <div class="error-note">Fejl hvis <code>thermostat</code> ikke er i intervallet 1–3, hvis <code>thermostat</code> mangler, eller hvis <code>kp</code>/<code>ki</code>/<code>kd</code> er negative.</div>
     </div>
   </div>
 
@@ -491,8 +491,8 @@
         <thead><tr><th>Parameter</th><th>Type</th><th>Krav</th><th>Beskrivelse</th></tr></thead>
         <tbody>
           <tr><td class="param-name">thermostat</td><td><span class="type-badge">int</span></td><td class="required">Påkrævet</td><td>Termostatnummer (1–3)</td></tr>
-          <tr><td class="param-name">threshold</td><td><span class="type-badge">float</span></td><td class="required">Påkrævet</td><td>Grænsetemperatur i °C. Under denne grænse kører varmeelementet på 100 %.</td></tr>
-          <tr><td class="param-name">setpoint</td><td><span class="type-badge">float</span></td><td class="optional">Valgfri</td><td>Måltemperatur i °C. Skal være større end <code>threshold</code>. Opdaterer PID-setpunktet. Udelades hvis det eksisterende setpunkt ønskes bevaret.</td></tr>
+          <tr><td class="param-name">threshold</td><td><span class="type-badge">float</span></td><td class="required">Påkrævet</td><td>Delta i °C under setpunktet. Fuld varme når temp &lt; (setpunkt − <code>threshold</code>).</td></tr>
+          <tr><td class="param-name">setpoint</td><td><span class="type-badge">float</span></td><td class="optional">Valgfri</td><td>Måltemperatur i °C. Opdaterer PID-setpunktet. Udelades hvis det eksisterende setpunkt ønskes bevaret.</td></tr>
         </tbody>
       </table>
       <div class="two-col">
@@ -621,7 +621,7 @@
   <span class="key">"error"</span>: <span class="str">"Invalid relay"</span>
 }</div>
     <br>
-    <b>Mulige fejlbeskeder:</b> <code>Invalid JSON</code> · <code>Missing relay/state</code> · <code>Invalid relay</code> · <code>Missing sensor</code> · <code>Invalid sensor</code> · <code>Missing thermostat/setpoint</code> · <code>Invalid thermostat</code> · <code>Missing thermostat</code> · <code>Missing thermostat/state</code> · <code>Invalid state</code> · <code>Invalid kp</code> · <code>Invalid ki</code> · <code>Invalid kd</code> · <code>Invalid percent</code> · <code>Missing percent</code> · <code>Missing thermostat/mode</code> · <code>Invalid mode</code> · <code>Missing active</code> · <code>Missing thermostat/threshold</code> · <code>threshold must be &gt;= 0</code> · <code>Unknown command</code>
+    <b>Mulige fejlbeskeder:</b> <code>Invalid JSON</code> · <code>Missing relay/state</code> · <code>Invalid relay</code> · <code>Missing sensor</code> · <code>Invalid sensor</code> · <code>Missing thermostat</code> · <code>Invalid thermostat</code> · <code>Missing thermostat/state</code> · <code>Invalid state</code> · <code>Invalid kp</code> · <code>Invalid ki</code> · <code>Invalid kd</code> · <code>Invalid percent</code> · <code>Missing percent</code> · <code>Missing thermostat/mode</code> · <code>Invalid mode</code> · <code>Missing active</code> · <code>Missing thermostat/threshold</code> · <code>threshold must be &gt;= 0</code> · <code>Unknown command</code>
   </div>
 
 </main>

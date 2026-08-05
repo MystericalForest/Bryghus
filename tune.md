@@ -1,31 +1,28 @@
-PID: PI-regulering (D = 0)
-Tidsvindue: 5–10 sekunder
-P: moderat
-I-tid: 300–600 sekunder
+# Tuning af termostater
 
-En praktisk tuning:
+## Aktuelle firmware-defaults
 
-Sæt:
-P = 10
-I = 500 s
-D = 0
-Kør fra fx 20 °C til 60 °C.
-Kig på de sidste 5–10 °C:
-Hvis den går 3–5 °C over → gør integralet langsommere (fx I = 800 s)
-Hvis den stopper 1–2 °C under → gør integralet hurtigere (fx I = 300 s)
-Hvis den oscillerer konstant → sænk aggressiviteten
+- Kp = 5.0
+- Ki = 0.002
+- Kd = 0.0
+- PWM-vindue = 5000 ms
 
-Med en stor gryde vil omrøring/cirkulation og placering af føleren faktisk have større betydning end små ændringer i PID-værdierne. Hvis føleren sidder tæt ved varmelegemet, vil PID'en typisk blive for langsom og give oversving, fordi resten af vandmassen er koldere.
+Disse værdier svarer til konfigurationen i interface/config.h.
 
-Hvis du kan aflæse mærkepladen på varmelegemet (fx "400 V 6 kW", "230 V 3 kW" osv.), kan jeg regne den faktiske effekt ud og give et mere præcist udgangspunkt.
+## Praktisk fremgangsmåde
 
-Til at begynde med
+1. Start med standardværdierne ovenfor.
+2. Kør et trin, fx 20 °C -> 60 °C.
+3. Vurder især de sidste 5-10 °C op mod setpunkt.
 
-Kp = 5.0
-Ki = 0.002
-Kd = 0
+Typiske justeringer:
 
-Måske senere
-Kp = 3
-Ki = 0.0005
-Kd = 0
+- Hvis temperaturen går 3-5 °C over setpunkt: sænk Kp lidt eller sænk Ki.
+- Hvis den bliver 1-2 °C under setpunkt i lang tid: øg Ki lidt.
+- Hvis den oscillerer konstant: sænk Kp.
+
+## Noter
+
+- Sensorplacering og omrøring/cirkulation har ofte større effekt end små PID-ændringer.
+- Hvis føleren sidder tæt på varmelegemet, kan resten af væsken være koldere end målingen viser.
+- Auto-tilstandens threshold er et delta under setpunkt og bør tunes sammen med PID.
