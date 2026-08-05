@@ -114,6 +114,7 @@ class MainWindow(QMainWindow):
         self._status_lbl.setStyleSheet("color: #777777; background: transparent;")
 
         self._error_lbl = QLabel("")
+        self._error_lbl.setTextFormat(Qt.TextFormat.PlainText)
         self._error_lbl.setStyleSheet("color: #f44336; background: transparent;")
 
         layout.addWidget(port_lbl)
@@ -180,7 +181,11 @@ class MainWindow(QMainWindow):
             self._error_lbl.setText(f"Arduino fejl: {data.get('error', 'Ukendt')}")
             return
         self._error_lbl.setText("")
-        status = SystemStatus.from_dict(data)
+        try:
+            status = SystemStatus.from_dict(data)
+        except (TypeError, ValueError, KeyError) as exc:
+            self._error_lbl.setText(f"Ugyldigt svar fra Arduino: {exc}")
+            return
         if status is None:
             return
         self._overview_tab.update_data(status)
@@ -220,5 +225,6 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         self._worker.disconnect_port()
-        self._worker.wait(3000)
+        if not self._worker.wait(3000):
+            self._worker.terminate()
         event.accept()

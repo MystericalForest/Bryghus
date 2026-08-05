@@ -152,16 +152,9 @@ class TempCard(QFrame):
         tick_outer = outer + max(4.0, size * 0.025)
         tick_inner = inner - max(2.0, size * 0.015)
 
-        # Base track and colored zones are drawn as near-full arcs with a bottom gap.
+        # Ring colors follow setpoint warning/alarm limits on a shared 0-120 scale.
         span_rect = QRectF(cx - outer, cy - outer, outer * 2, outer * 2)
         steps = 220
-        for i in range(steps):
-            start = self._START_DEG + (i / steps) * self._SWEEP_DEG
-            end = self._START_DEG + ((i + 1) / steps) * self._SWEEP_DEG
-            painter.setPen(QPen(QColor("#3a3a3a"), ring_width, Qt.PenStyle.SolidLine, Qt.PenCapStyle.FlatCap))
-            painter.drawArc(span_rect, int(-start * 16), int(-(end - start) * 16))
-
-        # Ring colors follow setpoint warning/alarm limits on a shared 0-120 scale.
         for i in range(steps):
             value = (i / steps) * 120.0
             color = self._zone_color(value)

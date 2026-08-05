@@ -110,6 +110,7 @@ class ThermostatTab(QWidget):
         self._log_btn.clicked.connect(self._on_toggle_logging)
 
         self._log_status = QLabel("Logning: stoppet")
+        self._log_status.setTextFormat(Qt.TextFormat.PlainText)
         self._log_status.setStyleSheet("color: #9e9e9e;")
 
         log_row.addWidget(self._log_btn)
@@ -142,7 +143,11 @@ class ThermostatTab(QWidget):
             angle=0, movable=False,
             pen=pg.mkPen("#f44336", width=1, style=Qt.PenStyle.DashLine),
         )
-        for item in (self._sp_line, self._warn_upper, self._warn_lower, self._alarm_upper):
+        self._alarm_lower = pg.InfiniteLine(
+            angle=0, movable=False,
+            pen=pg.mkPen("#f44336", width=1, style=Qt.PenStyle.DashLine),
+        )
+        for item in (self._sp_line, self._warn_upper, self._warn_lower, self._alarm_upper, self._alarm_lower):
             self.graph.addItem(item)
 
         left_layout.addLayout(status_row)
@@ -328,12 +333,13 @@ class ThermostatTab(QWidget):
 
     def _flash_ok(self, btn: QPushButton):
         """Briefly flash a button green to confirm the command was queued."""
-        original = btn.styleSheet()
-        btn.setText("✓  " + btn.text())
+        original_style = btn.styleSheet()
+        original_text = btn.text()
+        btn.setText("✓  " + original_text)
         btn.setStyleSheet("background-color: #1b5e20; color: white;")
         QTimer.singleShot(
             800,
-            lambda: (btn.setStyleSheet(original), btn.setText(btn.text().replace("✓  ", "", 1))),
+            lambda: (btn.setStyleSheet(original_style), btn.setText(original_text)),
         )
 
     # ------------------------------------------------------------------
@@ -585,6 +591,7 @@ class ThermostatTab(QWidget):
         self._warn_upper.setValue(sp + data.warning_limit)
         self._warn_lower.setValue(sp - data.warning_limit)
         self._alarm_upper.setValue(sp + data.alarm_limit)
+        self._alarm_lower.setValue(sp - data.alarm_limit)
 
         # --- Sync control widgets with Arduino's confirmed values.
         # Skip any widget that currently has keyboard focus (user is editing it). ---
