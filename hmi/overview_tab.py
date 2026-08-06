@@ -283,10 +283,15 @@ class CountdownPanel(QGroupBox):
         self._reset_btn.setMinimumHeight(48)
         self._reset_btn.clicked.connect(self._on_reset)
 
+        self._stop_btn = QPushButton("Stop")
+        self._stop_btn.setMinimumHeight(48)
+        self._stop_btn.clicked.connect(self._on_stop)
+
         btn_col = QVBoxLayout()
         btn_col.setSpacing(8)
         btn_col.addWidget(self._start_pause_btn)
         btn_col.addWidget(self._reset_btn)
+        btn_col.addWidget(self._stop_btn)
         btn_col.addStretch()
 
         top_row.addWidget(self._time_lbl, 1)
@@ -353,6 +358,12 @@ class CountdownPanel(QGroupBox):
         self._start_pause_btn.setText("Start")
         self._remaining_secs = self._minutes_spin.value() * 60
         self._refresh_display()
+
+    def _on_stop(self):
+        # Stop pauses countdown without resetting remaining time.
+        self._running = False
+        self._timer.stop()
+        self._start_pause_btn.setText("Start")
 
     def _minutes_changed(self, value: int):
         if not self._running:
@@ -444,8 +455,8 @@ class OverviewTab(QWidget):
         self._task_list_text.setPlaceholderText("Skriv opgaver for brygprocessen her")
         self._task_list_text.setPlainText(
             "1. Start opvarmning\n"
-            "2. Kontroller maesketemperatur\n"
-            "3. Tilfoj humle ved kog"
+            "2. Kontroller mæsketemperatur\n"
+            "3. Tilføj humle ved kog"
         )
         tasks_layout.addWidget(self._task_list_text)
 
