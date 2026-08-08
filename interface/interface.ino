@@ -255,7 +255,7 @@ void setup() {
   // De fleste breakout-boards leveres konfigureret til 2-leder.
   // Skift til MAX31865_3WIRE hvis du bruger 3-leder PT100-kabling.
   for (int i = 0; i < NUM_TEMPS; i++) {
-    sensors[i].begin(MAX31865_2WIRE);
+    sensors[i].begin(MAX31865_3WIRE);
     temps[i] = NAN; // Ugyldig indtil første vellykkede aflæsning
   }
 

@@ -73,7 +73,7 @@
 // =============================================================================
 
 #define SENSOR_BUTTON_PIN  A3
-#define SENSOR_LED_PINS    {A4, A5, A6, A7}  // En LED pr. sensor
+#define SENSOR_LED_PINS    {A7, A6, A5, A4}  // En LED pr. sensor
 
 
 // =============================================================================
